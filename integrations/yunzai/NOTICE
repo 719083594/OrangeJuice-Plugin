@@ -1,0 +1,4 @@
+OrangeJuice Yunzai bridge
+Copyright 2026 OrangeJuice / 719083594
+SPDX-License-Identifier: GPL-3.0-or-later
+This optional component communicates with the separately running management core using signed JSON file IPC.

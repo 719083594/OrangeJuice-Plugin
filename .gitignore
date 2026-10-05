@@ -1,0 +1,13 @@
+data/
+config/local.json
+__pycache__/
+*.pyc
+.venv/
+*.log
+*.db
+*.sqlite*
+*.key
+*.pem
+.env*
+dist/
+local-test-report.json

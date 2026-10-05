@@ -1,0 +1,16 @@
+{
+  "host": "127.0.0.1",
+  "port": 15082,
+  "publicUrl": "http://127.0.0.1:15082",
+  "frameworkName": "通用文件适配器",
+  "frameworkRoot": "./workspace",
+  "pluginsDirectory": "./workspace/plugins",
+  "bridgeDirectory": "./data/bridge",
+  "runtimeFile": "./data/bridge/runtime.json",
+  "readonlyPlugins": ["chatgpt-plugin"],
+  "extraConfigs": [],
+  "actions": [],
+  "externalPanels": [],
+  "allowedOrigins": [],
+  "secureCookies": false
+}

@@ -1,0 +1,6 @@
+OrangeJuice-Plugin
+Copyright 2026 OrangeJuice / 719083594
+
+The independent orangejuice/, web/, scripts/, tests/, config/ and accompanying documentation are licensed under PolyForm Noncommercial 1.0.0.
+The optional integrations/yunzai/ component is licensed separately under GPL-3.0-or-later; the Noncommercial condition does not apply to this GPL component.
+Third-party components retain their own licenses. See THIRD_PARTY_NOTICES.md and docs/CREDITS.md.

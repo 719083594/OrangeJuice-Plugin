@@ -1,0 +1,341 @@
+{
+  "revision": "eab9cb27c0a4af105307568a84fee33ba6413b95",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/bot/restart",
+      "handler": "this.doRestart",
+      "controller": "server/controller/biz/BotController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/config/tabs",
+      "handler": "this.tabs",
+      "controller": "server/controller/biz/ConfigController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/config/data",
+      "handler": "this.getData",
+      "controller": "server/controller/biz/ConfigController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/config/data",
+      "handler": "this.setData",
+      "controller": "server/controller/biz/ConfigController.js"
+    },
+    {
+      "method": "DELETE",
+      "path": "/config/card-Form",
+      "handler": "this.removeCardForm",
+      "controller": "server/controller/biz/ConfigController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/oicq/pick/user",
+      "handler": "this.pickUser",
+      "controller": "server/controller/biz/OicqController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/oicq/pick/group",
+      "handler": "this.pickGroup",
+      "controller": "server/controller/biz/OicqController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/oicq/friend/list",
+      "handler": "this.queryFriendList",
+      "controller": "server/controller/biz/OicqController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/oicq/friend/count",
+      "handler": "(",
+      "controller": "server/controller/biz/OicqController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/oicq/group/list",
+      "handler": "this.queryGroupList",
+      "controller": "server/controller/biz/OicqController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/list",
+      "handler": "this.getPlugins",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/readme",
+      "handler": "this.getPluginReadme",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "PUT",
+      "path": "/plugin/install",
+      "handler": "this.installPlugin",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "PUT",
+      "path": "/plugin/uninstall",
+      "handler": "this.uninstallPlugin",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/s/:pluginName/icon",
+      "handler": "this.getPluginIcon",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/s/:pluginName/config",
+      "handler": "this.getPluginConfig",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "PUT",
+      "path": "/plugin/s/:pluginName/config",
+      "handler": "this.setPluginConfig",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/plugin/do/:pluginName/action",
+      "handler": "this.doAction",
+      "controller": "server/controller/biz/PluginController.js"
+    },
+    {
+      "method": "ALL",
+      "path": "*splat",
+      "handler": "this.handle404",
+      "controller": "server/controller/ErrorController.js"
+    },
+    {
+      "method": "ALL",
+      "path": "/helper/transit",
+      "handler": "this.transitRequest",
+      "controller": "server/controller/HelperController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/helper/city_weather",
+      "handler": "this.getCityWeather",
+      "controller": "server/controller/HelperController.js"
+    },
+    {
+      "method": "DELETE",
+      "path": "/helper/release_port",
+      "handler": "this.tryReleasePort",
+      "controller": "server/controller/HelperController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/v2-transfer/status",
+      "handler": "this.getTransferStatus",
+      "controller": "server/controller/other/v2/V2Transfer.js"
+    },
+    {
+      "method": "POST",
+      "path": "/v2-transfer/reset",
+      "handler": "this.resetTransfer",
+      "controller": "server/controller/other/v2/V2Transfer.js"
+    },
+    {
+      "method": "POST",
+      "path": "/v2-transfer/start",
+      "handler": "this.startTransfer",
+      "controller": "server/controller/other/v2/V2Transfer.js"
+    },
+    {
+      "method": "PUT",
+      "path": "/v2-transfer/stop",
+      "handler": "this.stopTransfer",
+      "controller": "server/controller/other/v2/V2Transfer.js"
+    },
+    {
+      "method": "GET",
+      "path": "/v2-transfer/check-js",
+      "handler": "this.checkJsFile",
+      "controller": "server/controller/other/v2/V2Transfer.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/miao/help",
+      "handler": "this.getMiaoHelpCfg",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/plugin/miao/help",
+      "handler": "this.saveMiaoHelpCfg",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/miao/help/theme/bg",
+      "handler": "this.getHelpThemeBg",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/miao/help/theme/main",
+      "handler": "this.getHelpThemeMain",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/miao/help/theme/list",
+      "handler": "this.getHelpThemeList",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/miao/help/theme/config",
+      "handler": "this.getHelpThemeConfig",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/plugin/miao/help/theme/config",
+      "handler": "this.saveHelpThemeConfig",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/plugin/miao/help/theme/action",
+      "handler": "this.addHelpTheme",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/plugin/miao/help/theme/action_put",
+      "handler": "this.putHelpTheme",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "DELETE",
+      "path": "/plugin/miao/help/theme/action",
+      "handler": "this.deleteHelpTheme",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/miao/help/icon",
+      "handler": "this.getHelpIcon",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/plugin/miao/help/backup",
+      "handler": "this.addBackup",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/plugin/miao/help/backup/list",
+      "handler": "this.getBackupList",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/plugin/miao/help/backup/restore",
+      "handler": "this.restoreBackup",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "DELETE",
+      "path": "/plugin/miao/help/backup/delete",
+      "handler": "this.deleteBackup",
+      "controller": "server/controller/plugin/MiaoPluginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/home/data",
+      "handler": "this.getHomeData",
+      "controller": "server/controller/system/HomeController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/home/random-image",
+      "handler": "this.randomImage",
+      "controller": "server/controller/system/HomeController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/login",
+      "handler": "this.login",
+      "controller": "server/controller/system/LoginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "handler": "this.logout",
+      "controller": "server/controller/system/LoginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/login/quick",
+      "handler": "this.quickLogin",
+      "controller": "server/controller/system/LoginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/login/code/request",
+      "handler": "this.codeLoginRequest",
+      "controller": "server/controller/system/LoginController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/login/code/check",
+      "handler": "this.codeLoginCheck",
+      "controller": "server/controller/system/LoginController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/getPermCode",
+      "handler": "this.getPermCode",
+      "controller": "server/controller/system/PermissionController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/getMenuList",
+      "handler": "this.getMenuList",
+      "controller": "server/controller/system/PermissionController.js"
+    },
+    {
+      "method": "POST",
+      "path": "/sys/restart-guoba",
+      "handler": "this.doRestartGuoba",
+      "controller": "server/controller/system/SystemController.js"
+    },
+    {
+      "method": "PUT",
+      "path": "/sys/fs/create-dir",
+      "handler": "this.putCreateDir",
+      "controller": "server/controller/system/SystemController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/sys/fs/tree/root",
+      "handler": "this.getFsTreeRoot",
+      "controller": "server/controller/system/SystemController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/sys/fs/tree/children",
+      "handler": "this.getFsTreeChildren",
+      "controller": "server/controller/system/SystemController.js"
+    },
+    {
+      "method": "GET",
+      "path": "/user/getLoginUser",
+      "handler": "this.getLoginUser",
+      "controller": "server/controller/system/UserController.js"
+    }
+  ]
+}
