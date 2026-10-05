@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import {randomUUID,createHmac,createHash} from 'node:crypto'
 import PluginsLoader from '../../lib/plugins/loader.js'
+const PluginBase=globalThis.plugin||(await import('../../lib/plugins/plugin.js')).default
 
 const root=path.resolve('data/orangejuice')
 let config={publicUrl:'http://127.0.0.1:16080',ipcDirectory:root}
@@ -32,7 +33,7 @@ async function ticket(){
   try{for(let i=0;i<30;i++){await new Promise(r=>setTimeout(r,200));if(fs.existsSync(response)){const value=JSON.parse(fs.readFileSync(response,'utf8'));fs.unlinkSync(response);if(!value.ticket)throw new Error('无效登录响应');return value.ticket}}throw new Error('管理服务没有响应')}
   finally{if(fs.existsSync(file))fs.unlinkSync(file)}
 }
-export class OrangeJuice extends plugin {
+export class OrangeJuice extends PluginBase {
   constructor(){super({name:'OrangeJuice-Plugin',dsc:'独立配置平台桥接与主人登录',event:'message',priority:15,rule:[{reg:/^[#/]?(?:橙汁|OrangeJuice)(?:登录|登陆|帮助)$/i,fnc:'login',permission:'master'}]})}
   init(){if(globalThis.orangeJuiceRuntimeTimer)clearInterval(globalThis.orangeJuiceRuntimeTimer);publishRuntime();globalThis.orangeJuiceRuntimeTimer=setInterval(publishRuntime,5000);globalThis.orangeJuiceRuntimeTimer.unref()}
   async login(e){
