@@ -23,7 +23,37 @@
 
 配置路径限定在插件目录内；支持 JSON/YAML。`defaults` 可代替 `example`。实例配置尚未存在时，后台先显示默认值，保存时创建实例文件。`readonly` 禁止保存。`reload` 为 `restart` 或 `live`；只有插件自身能即时读取文件时才标为 live。
 
-字段支持 string、boolean、number、integer、array、object；可指定 required/min/max/enum。字段路径用点分隔，数组与对象在表单中以 JSON 编辑。未声明的已有字段仍完整显示。`password/token/secret/apiKey` 等敏感字段返回遮罩，保持遮罩会保留原值；填写新值会替换。
+字段支持 string、boolean、number、integer、array、object；可指定 required/min/max/enum。字段路径用点分隔，未声明的已有字段仍完整显示。`password/token/secret/apiKey` 等敏感字段返回遮罩，保持遮罩会保留原值；填写新值会替换。
+
+对象与数组项可按中文字段表单编辑。嵌套对象标题使用对应字段的 `label`，数组子字段使用 `*` 通配符，例如 `channels.*.apiKey`。对象数组提供添加、删除入口；简单值数组保留 JSON 编辑。每个含密钥的数组项应有唯一、持久的 `id`，删除或重排后按标识保留原密钥，无法确定原项时拒绝保存，避免串用其他渠道密钥。
+
+`secret:true` 可声明名称不含 key/token 的敏感字段；`maxTokens` 等数量参数仍正常显示。`multiline:true` 用于角色提示词等长文本，`enumLabels` 用于中文选项。数组字段的 `itemDefaults` 提供新增项默认结构，包含 `id` 时会生成新的 UUID。配置条目的 `ownerOnly:true` 使管理员和观察员仅能读取遮罩后的配置，修改仅允许主人。
+
+```json
+{
+  "title": "AI-Plugin",
+  "managementPanel": "ai-plugin",
+  "capabilities": "capabilities.json",
+  "configs": [{
+    "id": "settings", "title": "AI 运行设置",
+    "file": "config/local.json", "example": "config/example.json",
+    "ownerOnly": true, "reload": "restart",
+    "fields": [
+      {"path":"channels","label":"模型渠道","type":"array","itemDefaults":{"id":"","name":"新渠道","apiKey":"","model":""}},
+      {"path":"channels.*.id","label":"渠道标识","type":"string","required":true},
+      {"path":"channels.*.name","label":"渠道名称","type":"string"},
+      {"path":"channels.*.apiKey","label":"接口密钥","type":"string","secret":true},
+      {"path":"channels.*.model","label":"模型名称","type":"string"},
+      {"path":"presets.*.systemPrompt","label":"角色提示词","type":"string","multiline":true},
+      {"path":"chat.reasoningEffort","label":"思考强度","enum":["low","high"],"enumLabels":{"low":"较低","high":"较高"}}
+    ]
+  }]
+}
+```
+
+`managementPanel` 引用部署者登记的 `externalPanels[].id`，没有登记时不显示链接。打开入口需主人权限，服务端继续限制为本机 HTTP/HTTPS 地址。此声明不会执行插件代码或创建登录凭据。
+
+`capabilities` 可提供内联数组或插件内 JSON 文件路径，文件接受数组或 `{"capabilities":[...]}`。每项包含 `id/title/description/status/reason`，状态为 `implemented`（已实现）、`unconfigured`（待配置）或 `planned`（计划功能）。面板只展示这些说明，不把计划功能做成可启用开关，也不会把该文件当成可编辑配置。
 
 没有声明时，核心发现插件根目录、config 子目录的 JSON/YAML 和 data/config.json，排除包清单、锁文件及示例。自动发现不表示任意框架都能热更新，也不会解析 JavaScript 配置代码。复杂插件应把可配置数据和运行代码分离，或由部署者登记 extraConfigs。
 

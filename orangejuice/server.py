@@ -5,7 +5,7 @@ from .catalog import Catalog,mask
 from .system import Monitor
 
 WEB=Path(__file__).resolve().parent.parent/'web'
-VERSION='1.1.0'
+VERSION='1.2.0'
 
 class App:
     def __init__(self,settings,data):
@@ -110,6 +110,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if path=='/api/auth/request-code':
                 code=self.app.auth.code(peer);print('OrangeJuice 控制台登录验证码（5分钟一次有效）: '+code,flush=True);return self.output({'ok':True,'message':'验证码已写入服务控制台'})
         sid,session=self.session(method!='GET');role=session['role'];user=session['username']
+        def config_summary(entry):
+            result={k:v for k,v in entry.items() if k in ('id','title','readonly','reload','ownerOnly')}
+            result['readonly']=entry.get('readonly',False) or entry.get('ownerOnly',False) and role!='owner'
+            return result
         if path=='/api/me' and method=='GET':return self.output({'username':user,'role':role,'csrf':session['csrf'],'version':VERSION})
         if path=='/api/auth/logout' and method=='POST':self.app.auth.sessions.pop(sid,None);return self.output({'ok':True},cookie='oj_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0')
         if path=='/api/auth/password' and method=='POST':
@@ -121,16 +125,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path=='/api/plugin' and method=='GET':
             pid=arg('id');item=next((p for p in self.app.catalog.list() if p['id']==pid),None)
             if not item:raise Error('插件不存在',404)
-            item['readme']=self.app.catalog.readme(pid);item['configs']=[{k:v for k,v in c.items() if k in ('id','title','readonly','reload')} for c in self.app.catalog.configs(pid)];return self.output(item)
+            item['readme']=self.app.catalog.readme(pid);item['configs']=[config_summary(c) for c in self.app.catalog.configs(pid)];return self.output(item)
         if path=='/api/icon' and method=='GET':
             root=self.app.catalog.plugin(arg('plugin'))
             p=next((root/name for name in ['resources/icon.png','resources/icon.svg'] if (root/name).is_file() and not (root/name).is_symlink()),None)
             if not p:raise Error('图标不存在',404)
             raw=p.read_bytes();self.send_response(200);self.headers_base(mimetypes.guess_type(p.name)[0]);self.send_header('Content-Length',str(len(raw)));self.end_headers();return self.wfile.write(raw)
-        if path=='/api/configs' and method=='GET':return self.output([{k:v for k,v in c.items() if k in ('id','title','readonly','reload')} for c in self.app.catalog.configs(arg('plugin'))])
-        if path=='/api/config' and method=='GET':return self.output(self.app.catalog.config(arg('plugin'),arg('id')))
+        if path=='/api/configs' and method=='GET':return self.output([config_summary(c) for c in self.app.catalog.configs(arg('plugin'))])
+        if path=='/api/config' and method=='GET':
+            result=self.app.catalog.config(arg('plugin'),arg('id'))
+            result['readonly']=result['readonly'] or result.get('ownerOnly',False) and role!='owner'
+            return self.output(result)
         if path=='/api/config' and method=='PUT':
             self.app.auth.require(session)
+            if self.app.catalog.entry(arg('plugin'),arg('id')).get('ownerOnly',False):self.app.auth.require(session,('owner',))
             if arg('plugin')=='OrangeJuice-Plugin' or arg('plugin')=='framework' and arg('id') in ('other.yaml','server.yaml','redis.yaml','db.yaml'):self.app.auth.require(session,('owner',))
             body=self.json_body();result=self.app.catalog.save(arg('plugin'),arg('id'),body.get('value'),body.get('revision'));self.app.audit(user,'config-save',arg('plugin')+'/'+arg('id'));return self.output(result)
         if path=='/api/backups' and method=='GET':self.app.auth.require(session);return self.output(self.app.catalog.backup_list())

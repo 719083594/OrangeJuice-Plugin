@@ -5,6 +5,7 @@ from .auth import Error,atomic
 
 MASK='••••••••'
 SECRET=re.compile(r'password|passwd|token|secret|api.?key|authorization|cookie|private.?key|credential|^auth$',re.I)
+PUBLIC_TOKEN_FIELDS={'maxtoken','maxtokens','maxoutputtokens','inputtokens','outputtokens','totaltokens','cachedtokens','reasoningtokens','tokenbudget','tokenlimit','maxcontexttokens','usetoken'}
 BLOCKED={'__proto__','constructor','prototype'}
 
 def digest(raw):return hashlib.sha256(raw).hexdigest()
@@ -13,19 +14,65 @@ def read_document(path):
     if len(raw)>1024*1024:raise Error('配置文件超过1MB')
     value=json.loads(raw) if path.suffix=='.json' else yaml.safe_load(raw)
     return ({} if value is None else value),digest(raw)
+def secret_key(key):return bool(SECRET.search(key)) and re.sub(r'[_\-]','',key.lower()) not in PUBLIC_TOKEN_FIELDS
 def mask(value,key=''):
-    if SECRET.search(key) and value not in (None,'',{},[]):return MASK
+    if secret_key(key) and value not in (None,'',{},[]):return MASK
     if isinstance(value,dict):return {k:mask(v,str(k)) for k,v in value.items()}
     if isinstance(value,list):return [mask(v,key) for v in value]
     return value
 def restore_mask(value,original,key=''):
     if isinstance(value,str) and value==MASK:return copy.deepcopy(original)
-    if SECRET.search(key) and isinstance(original,(dict,list)) and value==MASK:return copy.deepcopy(original)
+    if secret_key(key) and isinstance(original,(dict,list)) and value==MASK:return copy.deepcopy(original)
     if isinstance(value,dict):
         if any(str(k) in BLOCKED for k in value):raise Error('配置包含保留字段')
         return {k:restore_mask(v,original.get(k) if isinstance(original,dict) else None,str(k)) for k,v in value.items()}
-    if isinstance(value,list):return [restore_mask(v,original[i] if isinstance(original,list) and i<len(original) else None,key) for i,v in enumerate(value)]
+    if isinstance(value,list):
+        before=original if isinstance(original,list) else []
+        def masked(v):
+            if isinstance(v,str):return v==MASK
+            if isinstance(v,dict):return any(masked(x) for x in v.values())
+            if isinstance(v,list):return any(masked(x) for x in v)
+            return False
+        masked_ids=[item['id'] for item in value if isinstance(item,dict) and item.get('id') and masked(item)]
+        if len(masked_ids)!=len(set(map(str,masked_ids))):raise Error('含密钥的数组项标识不能重复')
+        restored=[]
+        for i,item in enumerate(value):
+            previous=before[i] if i<len(before) else None
+            if isinstance(item,dict) and masked(item):
+                matches=[old for old in before if isinstance(old,dict) and old.get('id')==item['id']] if item.get('id') else [old for old in before if mask(old)==item]
+                if len(matches)!=1:raise Error('含密钥的数组项需保留唯一标识；新项请填写密钥，勿复制遮罩')
+                previous=matches[0]
+            restored.append(restore_mask(item,previous,key))
+        return restored
     return value
+
+def field_values(value,parts,path=()):
+    """Expand declared wildcard fields without executing plugin code."""
+    if not parts:
+        yield path,value;return
+    part,*remaining=parts
+    if part=='*':
+        children=enumerate(value) if isinstance(value,list) else value.items() if isinstance(value,dict) else []
+        for key,item in children:yield from field_values(item,remaining,path+(key,))
+    elif isinstance(value,dict):
+        yield from field_values(value.get(part),remaining,path+(part,))
+    elif isinstance(value,list) and part.isdigit() and int(part)<len(value):
+        index=int(part);yield from field_values(value[index],remaining,path+(index,))
+    else:
+        yield path+(part,),None
+
+def mask_fields(value,fields):
+    result=mask(value)
+    for field in fields:
+        if not field.get('secret'):continue
+        for path,current in field_values(value,str(field.get('path','')).split('.')):
+            if not path or current in (None,'',{},[]):continue
+            parent=result
+            try:
+                for key in path[:-1]:parent=parent[key]
+                parent[path[-1]]=MASK
+            except (KeyError,IndexError,TypeError):pass
+    return result
 
 class Catalog:
     def __init__(self,settings,data):
@@ -54,6 +101,20 @@ class Catalog:
                 value=json.loads(p.read_text(encoding='utf-8'));return value if isinstance(value,dict) else {}
             except (OSError,ValueError):pass
         return {}
+    def capabilities(self,root,manifest):
+        declared=manifest.get('capabilities')
+        if not declared:return []
+        if isinstance(declared,str):
+            p=self.safe(root/declared,root)
+            if p.suffix!='.json' or not p.is_file():return []
+            declared=read_document(p)[0]
+        if isinstance(declared,dict):declared=declared.get('capabilities',[])
+        if not isinstance(declared,list):return []
+        result=[]
+        for item in declared[:100]:
+            if not isinstance(item,dict):continue
+            result.append({k:str(item.get(k,''))[:2000] for k in ('id','title','description','status','reason')})
+        return result
     def list(self):
         result=[];runtime=self.runtime();loaded={x.get('directory'):x for x in runtime.get('plugins',[])}
         self.root.mkdir(parents=True,exist_ok=True)
@@ -74,7 +135,11 @@ class Catalog:
             if isinstance(repository,dict):repository=repository.get('url','')
             if not isinstance(repository,str) or not repository.startswith(('https://github.com/','https://gitee.com/')):repository=''
             item={'id':root.name,'title':title,'description':presentation.get('description',pkg.get('description','未提供功能介绍')),'author':str(author),'version':presentation.get('version',pkg.get('version','未提供')),'repository':repository.removesuffix('.git'),'native':bool(manifest),'configCount':len(configs),'builtin':root.name in ('adapter','system','other','example'),'readonly':root.name in self.settings.get('readonlyPlugins',[]),'loaded':loaded.get(root.name,{}).get('loaded'),'icon':any((root/p).is_file() for p in ['resources/icon.png','resources/icon.svg']),'homepage':presentation.get('homepage'),'commands':presentation.get('commands',[])}
-            item['configError']=config_error;result.append(item)
+            item['configError']=config_error
+            item['managementPanel']=manifest.get('managementPanel') if isinstance(manifest.get('managementPanel'),str) else None
+            try:item['capabilities']=self.capabilities(root,manifest)
+            except (Error,OSError,ValueError,TypeError):item['capabilities']=[]
+            result.append(item)
         return result
     def configs(self,pid):
         if pid=='framework':
@@ -89,7 +154,9 @@ class Catalog:
             if not p.exists() and example:
                 try:default=read_document(self.safe(root/example,root))[0]
                 except (OSError,ValueError):pass
-            entries.append({'id':str(cfg.get('id',i)),'title':cfg.get('title',p.stem),'path':p,'root':root,'readonly':readonly or cfg.get('readonly',False),'fields':cfg.get('fields',[]),'defaults':default,'reload':cfg.get('reload','restart')});seen.add(p)
+            entries.append({'id':str(cfg.get('id',i)),'title':cfg.get('title',p.stem),'path':p,'root':root,'readonly':readonly or cfg.get('readonly',False),'ownerOnly':bool(cfg.get('ownerOnly',False)),'fields':cfg.get('fields',[]),'defaults':default,'reload':cfg.get('reload','restart')});seen.add(p)
+        capabilities_path=manifest.get('capabilities')
+        if isinstance(capabilities_path,str):seen.add(self.safe(root/capabilities_path,root))
         for directory in [root,root/'config',root/'data']:
             if not directory.is_dir() or directory.is_symlink():continue
             for p in sorted(directory.iterdir()):
@@ -99,7 +166,7 @@ class Catalog:
                 p=self.safe(p,root);entries.append({'id':'file:'+p.relative_to(root).as_posix(),'title':p.relative_to(root).as_posix(),'path':p,'root':root,'readonly':readonly,'fields':[],'reload':'restart'});seen.add(p)
         for cfg in self.settings.get('extraConfigs',[]):
             if cfg.get('plugin')==pid:
-                p=Path(cfg['path']).resolve();entries.append({'id':cfg['id'],'title':cfg.get('title',p.name),'path':p,'root':p.parent,'readonly':readonly or cfg.get('readonly',False),'fields':cfg.get('fields',[]),'reload':cfg.get('reload','restart')})
+                p=Path(cfg['path']).resolve();entries.append({'id':cfg['id'],'title':cfg.get('title',p.name),'path':p,'root':p.parent,'readonly':readonly or cfg.get('readonly',False),'ownerOnly':bool(cfg.get('ownerOnly',False)),'fields':cfg.get('fields',[]),'reload':cfg.get('reload','restart')})
         return entries
     def entry(self,pid,cid):
         item=next((x for x in self.configs(pid) if x['id']==cid),None)
@@ -107,21 +174,18 @@ class Catalog:
         self.safe(item['path'],item['root']);return item
     def config(self,pid,cid):
         item=self.entry(pid,cid);p=item['path'];value,revision=read_document(p) if p.exists() else (item.get('defaults',{}),'missing')
-        return {'id':cid,'title':item['title'],'value':mask(value),'revision':revision,'readonly':item['readonly'],'fields':item['fields'],'reload':item['reload'],'format':p.suffix.removeprefix('.')}
+        return {'id':cid,'title':item['title'],'value':mask_fields(value,item['fields']),'revision':revision,'readonly':item['readonly'],'ownerOnly':item.get('ownerOnly',False),'fields':item['fields'],'reload':item['reload'],'format':p.suffix.removeprefix('.')}
     def validate(self,value,fields):
         for field in fields:
-            current=value
-            for part in field.get('path','').split('.'):
-                if not isinstance(current,dict) or part not in current:current=None;break
-                current=current[part]
-            if current is None:
-                if field.get('required'):raise Error(field.get('label',field['path'])+'不能为空')
-                continue
-            kind=field.get('type');types={'boolean':bool,'number':(int,float),'integer':int,'string':str,'array':list,'object':dict}
-            if kind in types and (not isinstance(current,types[kind]) or kind in ('number','integer') and isinstance(current,bool)):raise Error(field.get('label',field['path'])+'类型不正确')
-            if isinstance(current,(int,float)) and not isinstance(current,bool):
-                if 'min' in field and current<field['min'] or 'max' in field and current>field['max']:raise Error(field.get('label',field['path'])+'超出允许范围')
-            if 'enum' in field and current not in field['enum']:raise Error(field.get('label',field['path'])+'不是有效选项')
+            for _,current in field_values(value,str(field.get('path','')).split('.')):
+                if current is None:
+                    if field.get('required'):raise Error(field.get('label',field['path'])+'不能为空')
+                    continue
+                kind=field.get('type');types={'boolean':bool,'number':(int,float),'integer':int,'string':str,'array':list,'object':dict}
+                if kind in types and (not isinstance(current,types[kind]) or kind in ('number','integer') and isinstance(current,bool)):raise Error(field.get('label',field['path'])+'类型不正确')
+                if isinstance(current,(int,float)) and not isinstance(current,bool):
+                    if 'min' in field and current<field['min'] or 'max' in field and current>field['max']:raise Error(field.get('label',field['path'])+'超出允许范围')
+                if 'enum' in field and current not in field['enum']:raise Error(field.get('label',field['path'])+'不是有效选项')
     def save(self,pid,cid,value,revision):
         with self.lock:
             item=self.entry(pid,cid)

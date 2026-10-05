@@ -78,6 +78,8 @@ python scripts/install.py --framework-root /srv/my-app \
 
 主人可管理账号、服务动作及插件安装；管理员可编辑一般配置、查看备份与审计；观察员查看状态和遮罩后的配置。敏感后台及框架配置仅主人可改，恢复备份也仅主人可执行。
 
+管理地址、框架名称与常见配置字段提供中文名称。插件声明的中文字段同样适用于嵌套对象和对象数组；模型渠道与角色预设可逐项添加、删除和编辑，密钥按稳定标识保留。AI-Plugin 等插件可声明 `ownerOnly`、独立管理入口及只读功能清单，明确显示已实现、待配置和计划功能。详见 [适配协议](docs/ADAPTERS.md)。
+
 默认保护 `chatgpt-plugin`，其配置只读。已有 AI 服务的管理入口可通过 `externalPanels` 接入。配置文件的所有已有字段可编辑，声明中可以给每个字段添加名称、说明和校验。YAML 保存会重新排版并去掉注释，请保留自动备份。
 
 升级时保留 `config/local.json` 与 `data`。替换程序文件后重启管理服务；不要用示例覆盖实例配置。
@@ -89,7 +91,7 @@ python -m orangejuice.server diagnose --config config/local.json --data data
 python -m unittest discover -s tests -v
 node --check web/app.js
 node --check integrations/yunzai/index.js
-node --test tests/bridge.test.mjs
+node --test tests/bridge.test.mjs tests/config-form.test.mjs
 ```
 
 接口列表见 [API](docs/API.md)，锅巴接口调研与对应关系见 [调研报告](docs/GUOBA-RESEARCH.md)。本项目使用独立 API，不替代其他程序对锅巴 API 的调用；原有 `guoba.support.js` 配置回调需迁移为橙汁声明或适配器。

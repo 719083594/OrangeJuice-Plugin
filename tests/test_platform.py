@@ -119,5 +119,52 @@ class PlatformTest(unittest.TestCase):
         sid,s=self.app.auth.session('newowner');self.app.auth.user_delete(s,'owner')
         ticket=self.app.auth.ticket();self.assertEqual(self.app.auth.consume(ticket,'test')[1]['username'],'newowner')
         code=self.app.auth.code('console');self.assertEqual(self.app.auth.consume(code,'console','code')[1]['username'],'newowner')
+    def create_ai_plugin(self):
+        root=self.plugins/'AI-Plugin';(root/'config').mkdir(parents=True)
+        value={'channels':[{'id':'first','name':'一','apiKey':'first-private-fixture','key':'alternate-private-fixture','maxTokens':1024},{'id':'second','name':'二','apiKey':'second-private-fixture','key':'second-alternate-fixture','maxTokens':2048}],'presets':[{'id':'default','prompt':'fixture prompt'}]}
+        (root/'config/local.json').write_text(json.dumps(value),encoding='utf-8')
+        manifest={'title':'AI-Plugin','managementPanel':'ai-plugin','capabilities':'capabilities.json','configs':[{'id':'settings','title':'AI 运行设置','file':'config/local.json','reload':'live','ownerOnly':True,'fields':[{'path':'channels.*.apiKey','label':'接口密钥','type':'string','secret':True},{'path':'channels.*.key','label':'备用密钥','type':'string','secret':True},{'path':'channels.*.maxTokens','label':'最多输出 Token','type':'integer','min':1,'max':8192}]}]}
+        (root/'orangejuice.plugin.json').write_text(json.dumps(manifest),encoding='utf-8')
+        (root/'capabilities.json').write_text(json.dumps({'capabilities':[{'id':'chat','title':'聊天','status':'implemented'},{'id':'workflow','title':'工作流','status':'planned'}]}),encoding='utf-8')
+        return root,value
+    def test_ai_native_registration_and_capabilities_are_not_editable_configs(self):
+        root,_=self.create_ai_plugin()
+        item=next(x for x in self.app.catalog.list() if x['id']=='AI-Plugin')
+        self.assertTrue(item['native']);self.assertEqual(item['title'],'AI-Plugin');self.assertEqual(item['managementPanel'],'ai-plugin')
+        self.assertEqual(item['configCount'],1);self.assertEqual(item['capabilities'][1]['status'],'planned')
+        self.assertEqual(self.app.catalog.configs('AI-Plugin')[0]['id'],'settings')
+    def test_ai_wildcard_secrets_survive_channel_deletion_and_reordering(self):
+        root,original=self.create_ai_plugin()
+        c=self.app.catalog.config('AI-Plugin','settings')
+        for item in c['value']['channels']:
+            self.assertEqual(item['apiKey'],MASK);self.assertEqual(item['key'],MASK)
+        self.assertEqual(c['value']['channels'][0]['maxTokens'],1024)
+        self.assertNotIn('private-fixture',json.dumps(c))
+        c['value']['channels'].reverse();c['value']['channels'][0]['maxTokens']=4096
+        self.app.catalog.save('AI-Plugin','settings',c['value'],c['revision'])
+        raw=json.loads((root/'config/local.json').read_text(encoding='utf-8'))
+        self.assertEqual(raw['channels'][0]['apiKey'],original['channels'][1]['apiKey'])
+        self.assertEqual(raw['channels'][0]['key'],original['channels'][1]['key'])
+        c=self.app.catalog.config('AI-Plugin','settings');c['value']['channels'].pop(0)
+        self.app.catalog.save('AI-Plugin','settings',c['value'],c['revision'])
+        raw=json.loads((root/'config/local.json').read_text(encoding='utf-8'))
+        self.assertEqual(raw['channels'][0]['apiKey'],original['channels'][0]['apiKey'])
+    def test_ai_wildcard_validation_and_duplicate_secret_ids_are_rejected(self):
+        self.create_ai_plugin();c=self.app.catalog.config('AI-Plugin','settings')
+        c['value']['channels'][1]['maxTokens']=9000
+        with self.assertRaises(Error):self.app.catalog.save('AI-Plugin','settings',c['value'],c['revision'])
+        c=self.app.catalog.config('AI-Plugin','settings');c['value']['channels'][0]['id']='new-channel'
+        with self.assertRaises(Error):self.app.catalog.save('AI-Plugin','settings',c['value'],c['revision'])
+        c=self.app.catalog.config('AI-Plugin','settings');c['value']['channels'][1]['id']='first'
+        with self.assertRaises(Error):self.app.catalog.save('AI-Plugin','settings',c['value'],c['revision'])
+    def test_ai_configuration_requires_owner_in_http_api(self):
+        self.create_ai_plugin()
+        self.app.auth.user_update(self.session,{'username':'admin','role':'admin','password':'long-test-password'})
+        sid,self.session=self.app.auth.session('admin');self.cookie='oj_session='+sid
+        status,c,_=self.call('/api/config?plugin=AI-Plugin&id=settings')
+        self.assertEqual(status,200);self.assertTrue(c['readonly']);self.assertTrue(c['ownerOnly'])
+        self.assertTrue(self.call('/api/configs?plugin=AI-Plugin')[1][0]['readonly'])
+        self.assertTrue(self.call('/api/plugin?id=AI-Plugin')[1]['configs'][0]['readonly'])
+        self.assertEqual(self.call('/api/config?plugin=AI-Plugin&id=settings','PUT',{'value':c['value'],'revision':c['revision']})[0],403)
 
 if __name__=='__main__':unittest.main()

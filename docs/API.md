@@ -16,11 +16,11 @@
 | GET | /api/services | 容器、进程，20秒缓存 |
 | GET | /api/runtime | 框架运行信息 |
 | GET | /api/plugins | 插件清单 |
-| GET | /api/plugin?id=目录 | 插件主页数据、README、配置索引 |
+| GET | /api/plugin?id=目录 | 插件主页数据、README、配置索引、能力状态、已登记独立入口ID |
 | GET | /api/icon?plugin=目录 | 本地图标 |
 | GET | /api/configs?plugin=目录 | 独立配置文件清单 |
-| GET | /api/config?plugin=目录&id=配置ID | value/revision/fields/readonly/reload/format |
-| PUT | /api/config?plugin=目录&id=配置ID | value/revision；主人、管理员；敏感后台仅主人 |
+| GET | /api/config?plugin=目录&id=配置ID | value/revision/fields/readonly/ownerOnly/reload/format；敏感字段遮罩 |
+| PUT | /api/config?plugin=目录&id=配置ID | value/revision；主人、管理员；ownerOnly 配置和敏感后台仅主人 |
 | GET | /api/backups | 最近100次备份元数据；主人、管理员 |
 | POST | /api/backups/restore | id/revision；主人 |
 | GET | /api/audit | 最近100条审计；主人、管理员 |
