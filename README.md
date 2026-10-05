@@ -60,6 +60,18 @@ Docker 部署应让管理服务与机器人共享 `data/orangejuice` 目录。�
 
 核心通过配置目录与声明文件工作，可独立用于其他插件式应用。JSON/YAML 配置可自动发现；数据库、JavaScript 动态配置及自定义动作需要框架或插件提供适配。详见 [适配协议](docs/ADAPTERS.md)。
 
+管理核心不依赖云崽、QQ 或 Node.js；通用文件适配支持插件清单、JSON/YAML 编辑、账号权限和配置备份。只有主动安装 `integrations/yunzai` 才需要云崽。其他框架的在线账号、好友群列表、加载功能计数和私聊登录需要实现运行信息与登录协议；未接入时显示“未提供/过期”，不推断在线状态。
+
+其他应用可使用自己的配置目录，例如：
+
+```bash
+python scripts/install.py --framework-root /srv/my-app \
+  --plugins-directory /srv/my-app/extensions \
+  --framework-configs-directory /srv/my-app/settings
+```
+
+不指定配置目录时保留云崽兼容默认路径 `config/config`；应用根目录之外的个别配置通过 `extraConfigs` 显式登记。新版配套项目 [ServerStatus-Plugin](https://github.com/719083594/ServerStatus-Plugin) 和 [WebSearch-Plugin](https://github.com/719083594/WebSearch-Plugin) 均提供独立核心、CLI 和可选云崽适配器。
+
 ## 配置和权限
 
 `config/local.json` 是实例配置。`config/example.json` 提供通用示例。配置保存返回生效方式；标注“重启”的配置在相应服务重启后生效。

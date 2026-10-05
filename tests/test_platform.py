@@ -36,6 +36,20 @@ class PlatformTest(unittest.TestCase):
         item=next(x for x in self.app.catalog.list() if x['id']=='sample')
         self.assertEqual(item['title'],'External title');self.assertEqual(item['description'],'External description');self.assertEqual(item['author'],'Publisher');self.assertEqual(item['repository'],'https://github.com/example/sample');self.assertFalse(item['readonly']);self.assertEqual(item['configCount'],1)
         self.assertEqual(self.app.catalog.config('sample','settings')['value']['timeout'],10)
+    def test_generic_framework_configuration_without_yunzai(self):
+        directory=self.root/'settings';directory.mkdir()
+        (directory/'application.json').write_text('{"enabled":true,"apiKey":"private-fixture"}')
+        self.settings['frameworkConfigsDirectory']=str(directory)
+        self.assertFalse((self.root/'lib/plugins/plugin.js').exists())
+        entries=self.app.catalog.configs('framework')
+        self.assertEqual([entry['id'] for entry in entries],['application.json'])
+        config=self.app.catalog.config('framework','application.json')
+        self.assertEqual(config['value']['apiKey'],MASK)
+        config['value']['enabled']=False
+        self.app.catalog.save('framework','application.json',config['value'],config['revision'])
+        raw=json.loads((directory/'application.json').read_text())
+        self.assertFalse(raw['enabled']);self.assertEqual(raw['apiKey'],'private-fixture')
+        self.assertTrue(self.app.catalog.runtime()['stale'])
     def test_ticket_one_use_expiry_and_cookie(self):
         ticket=self.app.auth.ticket();status,result,headers=self.call('/api/auth/ticket','POST',{'ticket':ticket},cookie=False)
         self.assertEqual(status,200);self.assertIn('HttpOnly',headers['Set-Cookie']);self.assertIn('SameSite=Strict',headers['Set-Cookie']);self.assertEqual(self.call('/api/auth/ticket','POST',{'ticket':ticket},cookie=False)[0],401)

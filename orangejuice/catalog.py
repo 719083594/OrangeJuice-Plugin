@@ -78,7 +78,7 @@ class Catalog:
         return result
     def configs(self,pid):
         if pid=='framework':
-            directory=self.safe(self.framework/'config/config',self.framework)
+            directory=self.safe(Path(self.settings.get('frameworkConfigsDirectory',self.framework/'config/config')),self.framework)
             return [{'id':p.name,'title':p.stem,'path':p,'root':directory,'readonly':False,'fields':[],'reload':'restart'} for p in sorted(directory.glob('*')) if p.suffix in ('.json','.yaml','.yml') and not p.is_symlink()]
         root=self.plugin(pid);manifest=self.manifest(root);entries=[];seen=set()
         readonly=pid in self.settings.get('readonlyPlugins',[])

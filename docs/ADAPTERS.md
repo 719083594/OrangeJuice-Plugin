@@ -1,5 +1,7 @@
 # 插件与框架适配
 
+独立管理服务不要求 `lib/plugins/plugin.js` 等云崽文件存在，也不导入机器人代码。`frameworkRoot` 表示通用应用根目录，`pluginsDirectory` 可为任意扩展目录；`frameworkConfigsDirectory` 可指定应用根目录内的 JSON/YAML 配置目录，不指定则保持兼容路径 `config/config`。其他框架无须伪造云崽目录。云崽适配器只是包内一个可选实现，未实现的框架专属功能不会自动可用。
+
 每个插件目录可放 `orangejuice.plugin.json`。核心读取声明，不导入或执行插件代码。
 
 ```json
