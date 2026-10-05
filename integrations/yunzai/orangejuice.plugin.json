@@ -1,1 +1,35 @@
-{"schemaVersion":1,"title":"OrangeJuice-Plugin","description":"独立配置管理平台，提供系统监测、插件配置、备份恢复与权限管理。","commands":["#橙汁登录","/橙汁登录","#橙汁帮助"],"configs":[{"id":"bridge","title":"机器人桥接配置","file":"config/local.json","defaults":{"publicUrl":"http://127.0.0.1:16080","ipcDirectory":"data/orangejuice"},"reload":"restart","fields":[{"path":"publicUrl","label":"管理面板访问地址","type":"string"},{"path":"ipcDirectory","label":"运行信息通信目录","type":"string"}]}]}
+{
+  "schemaVersion": 1,
+  "title": "OrangeJuice-Plugin",
+  "description": "独立配置管理平台，提供系统监测、插件配置、备份恢复与权限管理。",
+  "commands": [
+    "#橙汁登录",
+    "/橙汁登录",
+    "#橙汁帮助"
+  ],
+  "configs": [
+    {
+      "id": "bridge",
+      "title": "机器人桥接配置",
+      "file": "config/local.json",
+      "defaults": {
+        "publicUrl": "http://127.0.0.1:16080",
+        "ipcDirectory": "data/orangejuice"
+      },
+      "reload": "restart",
+      "fields": [
+        {
+          "path": "publicUrl",
+          "label": "管理面板访问地址",
+          "type": "string"
+        },
+        {
+          "path": "ipcDirectory",
+          "label": "运行信息通信目录",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "version": "1.2.1"
+}
