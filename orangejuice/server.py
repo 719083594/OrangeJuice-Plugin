@@ -5,7 +5,7 @@ from .catalog import Catalog,mask
 from .system import Monitor
 
 WEB=Path(__file__).resolve().parent.parent/'web'
-VERSION='1.0.0'
+VERSION='1.0.1'
 
 class App:
     def __init__(self,settings,data):

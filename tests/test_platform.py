@@ -31,6 +31,11 @@ class PlatformTest(unittest.TestCase):
         self.assertEqual(self.call('/api/config?plugin=sample&id=settings','PUT',{'value':{},'revision':'x'},csrf=False)[0],403)
         self.assertEqual(self.call('/api/auth/login','POST',{'username':'owner','password':'x'},cookie=False,origin='https://other.example')[0],403)
         status,me,headers=self.call('/api/me');self.assertEqual(status,200);self.assertEqual(me['role'],'owner');self.assertIn('frame-ancestors',headers['Content-Security-Policy'])
+    def test_external_metadata_preserves_configuration_and_permissions(self):
+        self.settings['pluginMetadata']={'sample':{'title':'External title','description':'External description','author':{'name':'Publisher'},'repository':'https://github.com/example/sample.git','configs':[{'file':'/private'}],'readonly':True}}
+        item=next(x for x in self.app.catalog.list() if x['id']=='sample')
+        self.assertEqual(item['title'],'External title');self.assertEqual(item['description'],'External description');self.assertEqual(item['author'],'Publisher');self.assertEqual(item['repository'],'https://github.com/example/sample');self.assertFalse(item['readonly']);self.assertEqual(item['configCount'],1)
+        self.assertEqual(self.app.catalog.config('sample','settings')['value']['timeout'],10)
     def test_ticket_one_use_expiry_and_cookie(self):
         ticket=self.app.auth.ticket();status,result,headers=self.call('/api/auth/ticket','POST',{'ticket':ticket},cookie=False)
         self.assertEqual(status,200);self.assertIn('HttpOnly',headers['Set-Cookie']);self.assertIn('SameSite=Strict',headers['Set-Cookie']);self.assertEqual(self.call('/api/auth/ticket','POST',{'ticket':ticket},cookie=False)[0],401)

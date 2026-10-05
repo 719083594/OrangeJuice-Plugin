@@ -27,6 +27,12 @@
 
 ## 运行信息
 
+不修改第三方插件时，可在面板实例配置中登记 `pluginMetadata`，键为插件目录名。支持 title、description、author、version、repository、homepage 和 commands。它只补充展示信息，不改变配置文件路径、原生适配标记或只读权限。
+
+```json
+{"pluginMetadata":{"ExamplePlugin":{"title":"ExamplePlugin","description":"插件功能介绍","homepage":"https://github.com/example/plugin"}}}
+```
+
 框架适配器原子写入 runtimeFile，格式如下：
 
 ```json

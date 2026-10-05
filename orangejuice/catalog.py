@@ -63,14 +63,17 @@ class Catalog:
             try:pkg=json.loads((root/'package.json').read_text(encoding='utf-8'))
             except (OSError,ValueError):pass
             manifest=self.manifest(root);author=pkg.get('author','未提供')
+            overrides=self.settings.get('pluginMetadata',{}).get(root.name,{})
+            presentation={**manifest,**{k:v for k,v in overrides.items() if k in ('title','description','author','version','repository','homepage','commands')}} if isinstance(overrides,dict) else manifest
+            author=presentation.get('author',author)
             if isinstance(author,dict):author=author.get('name','未提供')
             try:configs=self.configs(root.name);config_error=None
             except (Error,OSError,ValueError,TypeError):configs=[];config_error='配置清单无效，请检查插件声明'
-            title=manifest.get('title') or {'chatgpt-plugin':'ChatGPT-Plugin','deployment-admin':'DeploymentAdmin','OrangeJuice-Plugin':'OrangeJuice-Plugin'}.get(root.name,pkg.get('displayName',root.name))
-            repository=pkg.get('repository',{})
+            title=presentation.get('title') or {'chatgpt-plugin':'ChatGPT-Plugin','deployment-admin':'DeploymentAdmin','OrangeJuice-Plugin':'OrangeJuice-Plugin'}.get(root.name,pkg.get('displayName',root.name))
+            repository=presentation.get('repository',pkg.get('repository',{}))
             if isinstance(repository,dict):repository=repository.get('url','')
             if not isinstance(repository,str) or not repository.startswith(('https://github.com/','https://gitee.com/')):repository=''
-            item={'id':root.name,'title':title,'description':manifest.get('description',pkg.get('description','未提供功能介绍')),'author':str(author),'version':pkg.get('version','未提供'),'repository':repository.removesuffix('.git'),'native':bool(manifest),'configCount':len(configs),'builtin':root.name in ('adapter','system','other','example'),'readonly':root.name in self.settings.get('readonlyPlugins',[]),'loaded':loaded.get(root.name,{}).get('loaded'),'icon':any((root/p).is_file() for p in ['resources/icon.png','resources/icon.svg']),'homepage':manifest.get('homepage'),'commands':manifest.get('commands',[])}
+            item={'id':root.name,'title':title,'description':presentation.get('description',pkg.get('description','未提供功能介绍')),'author':str(author),'version':presentation.get('version',pkg.get('version','未提供')),'repository':repository.removesuffix('.git'),'native':bool(manifest),'configCount':len(configs),'builtin':root.name in ('adapter','system','other','example'),'readonly':root.name in self.settings.get('readonlyPlugins',[]),'loaded':loaded.get(root.name,{}).get('loaded'),'icon':any((root/p).is_file() for p in ['resources/icon.png','resources/icon.svg']),'homepage':presentation.get('homepage'),'commands':presentation.get('commands',[])}
             item['configError']=config_error;result.append(item)
         return result
     def configs(self,pid):

@@ -7,10 +7,13 @@
   "pluginsDirectory": "./workspace/plugins",
   "bridgeDirectory": "./data/bridge",
   "runtimeFile": "./data/bridge/runtime.json",
-  "readonlyPlugins": ["chatgpt-plugin"],
+  "readonlyPlugins": [
+    "chatgpt-plugin"
+  ],
   "extraConfigs": [],
   "actions": [],
   "externalPanels": [],
   "allowedOrigins": [],
-  "secureCookies": false
+  "secureCookies": false,
+  "pluginMetadata": {}
 }
