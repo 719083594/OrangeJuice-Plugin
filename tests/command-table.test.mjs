@@ -32,6 +32,8 @@ test('group scope including master hides rule and handler protected commands; pr
  assert.equal(owner.rows.filter(x=>x.title==='查看框架统计').length,1)
  assert(owner.rows.some(x=>x.command.includes('#全局添加')))
  assert.equal(owner.unparsed,0)
+  assert(group.rows.some(x=>x.title==='删除关键词回复'&&x.command==='#删除 关键词'))
+  assert(!group.rows.find(x=>x.title==='删除关键词回复').command.includes('全局'))
  assert(owner.rows.every(x=>x.category&&!x.category.includes('Plugin')))
 })
 test('live registry removes absent/unloaded commands; group controls, event rules, registration changes and unknown handlers',()=>{

@@ -10,7 +10,7 @@ const categories = [
   ['记忆与词条', /记忆|词条|关键词|添加消息|删除消息/],
   ['群聊与消息', /群聊|群成员|欢迎|退群|撤回|复读|好友|消息/],
   ['系统与状态', /系统|服务器|资源|存储|状态|统计|运行服务/],
-  ['配置与管理', /配置|设置|登录|面板|管理|验证码|主人|开关|指令/],
+  ['配置与管理', /配置|设置|登录|面板|管理|验证码|主人|开关|指令|帮助/],
   ['维护与更新', /备份|清理|恢复|重启|停止|关机|源码|更新|安装|日志|上线|下线|连接验证/],
 ]
 export function categoryFor(row) {
@@ -107,6 +107,9 @@ export function buildCommandTable(loader, event={}, options={}) {
         if (directory==='OrangeJuice-Plugin' && doc.title!=='统一指令表') permission='master'
         // Global keyword modification is owner-only even though the dispatcher is public.
         if (source==='system/add.js' && ['add','del'].includes(rule.fnc)) {
+          // The note mentions owner-only GLOBAL operations; local operations use
+          // group permissions and must not inherit that global restriction.
+          permission=ownerOnly(rule.permission)?'master':'all'
           if(group.addLimit===2)permission='master'
           else if(group.addLimit===1)permission='admin'
           if(!visible({permission:'master'},event)){

@@ -1,6 +1,6 @@
 {
   "name": "orangejuice-plugin",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "private": true,
   "description": "独立可扩展配置管理平台：系统监测、插件主页、配置编辑、登录权限与备份恢复",
   "author": "719083594",
