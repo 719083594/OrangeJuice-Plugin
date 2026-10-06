@@ -15,3 +15,5 @@
 @media(max-width:700px){.feature-plugin{padding:16px}.feature-fields>div{grid-template-columns:1fr}.feature-fields small{grid-column:1}.feature-item .card-head{flex-wrap:wrap;gap:12px}}
 
 .function-table td{vertical-align:top;min-width:130px}.function-table td:nth-child(3){min-width:260px;max-width:440px}.function-table .button{margin:3px}.field-command{margin-top:8px;font-size:12px}
+
+.function-table{table-layout:fixed;width:100%;min-width:0!important}.function-table th,.function-table td{min-width:0!important;max-width:none!important;white-space:normal;overflow-wrap:anywhere}.function-table th:nth-child(1){width:17%}.function-table th:nth-child(2){width:31%}.function-table th:nth-child(3){width:30%}.function-table th:nth-child(4){width:22%}.function-table code{white-space:normal;overflow-wrap:anywhere}.function-table .button{white-space:normal;max-width:100%}
