@@ -6,19 +6,20 @@ import PluginsLoader from '../../lib/plugins/loader.js'
 import {rewriteCommand,configurationPayload} from './command-aliases.mjs'
 import {featureSnapshot} from './feature-runtime.mjs'
 import cfg from '../../lib/config/config.js'
-import {buildCommandTable,readPluginJSON,replyCommandTable} from './command-table.mjs'
+import {readPluginJSON,replyCommandTable} from './command-table.mjs'
+import {commandCatalog,publishCommandCatalog} from './command-knowledge.mjs'
 const PluginBase=globalThis.plugin||(await import('../../lib/plugins/plugin.js')).default
 
 const root=path.resolve('data/orangejuice')
 let config={publicUrl:'http://127.0.0.1:16080',ipcDirectory:root}
 try{Object.assign(config,JSON.parse(fs.readFileSync(new URL('./config/local.json',import.meta.url),'utf8')))}catch(error){if(error.code!=='ENOENT')throw error}
 const ipc=path.resolve(config.ipcDirectory)
-const commandDocs=JSON.parse(fs.readFileSync(new URL('./command-docs.json',import.meta.url),'utf8'))
 const commandCooldown=new Map()
 function atomic(file,value){fs.mkdirSync(path.dirname(file),{recursive:true});const temporary=file+'.'+randomUUID()+'.tmp';fs.writeFileSync(temporary,JSON.stringify(value),{mode:0o600});fs.renameSync(temporary,file)}
 function mapList(value,convert){if(value instanceof Map)return [...value.values()].slice(0,1000).map(convert);if(Array.isArray(value))return value.slice(0,1000).map(convert);return []}
 function publishRuntime(){
   try{
+    publishCommandCatalog(PluginsLoader,ipc)
     const source=Bot.bots&&typeof Bot.bots==='object'?Object.entries(Bot.bots):Bot.uin?[[String(Bot.uin),Bot]]:[]
     const bots=source.filter(([id,b])=>b&&typeof b==='object'&&(b.uin!==undefined||b.self_id!==undefined||b.fl instanceof Map||b.gl instanceof Map)).map(([id,b])=>{
       let online=null;try{online=typeof b.isOnline==='function'?b.isOnline():typeof b.isOnline==='boolean'?b.isOnline:typeof b.stat?.online==='boolean'?b.stat.online:null}catch{}
@@ -63,7 +64,7 @@ export class OrangeJuice extends PluginBase {
     // Only active cooldowns are retained, so long-lived bots do not accumulate users.
     for(const [id,time] of commandCooldown)if(now-time>600000)commandCooldown.delete(id)
     commandCooldown.set(key,now)
-    const table=buildCommandTable(PluginsLoader,e,{docs:commandDocs,groupConfig:cfg.getGroup?.(e.self_id,e.group_id)||{},aliases:live.commandAliases})
+    const table=commandCatalog(PluginsLoader,e,{groupConfig:cfg.getGroup?.(e.self_id,e.group_id)||{}})
     return replyCommandTable(e,table,{forward:live.commandTableForward!==false})
   }
   async login(e){
