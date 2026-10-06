@@ -42,4 +42,10 @@
 
 1.4.0：`/api/features` 增加 `pluginGroups`（插件归属、配置索引、字段说明、插件指令及能力声明）。每项登记入口增加 `pluginId/pluginTitle/displayName/explanation/operations/configRefs`。这些说明是展示元数据，不改变框架执行或权限。
 
+1.5.0：`/api/plugins` 将框架模块合并为虚拟的 `framework` 内置插件；`/api/plugin?id=framework` 提供统一的功能、指令和配置入口。插件详情的 `functions` 对应当前登记的功能，能力声明保留 `configPaths`。`/api/config-labels` 返回功能名称字典；`/api/config` 的 `controls` 提供同一设置的 QQ 配置指令编号和版本。
+
+`POST /api/function-control`：主人或管理员可通过 `{name, enabled}` 修改内置功能默认开关，保留账号和群覆盖。需要登录会话与 CSRF。模块和定时任务使用其配置项管理。
+
+签名文件通信新增 `config-list`、`config-set`、`function-control`；由框架桥接仅允许主人私聊调用。配置写入调用统一 Catalog 保存流程；版本不一致、类型无效、只读或计划字段均拒绝写入。选项编号是配置与字段路径的摘要，字段路径不作为面板操作文本展示。外部框架也可接入相同管理核心。
+
 `plugin=framework` 用于内置插件共享配置；`plugin=orangejuice&id=platform` 专用于平台设置，仅主人可保存，采用 revision 冲突检查和自动备份。平台表单只接受监听地址、端口、公开地址、目录、只读插件、来源及 Cookie 设置等声明字段，保留未展示的部署定义。运行服务必须通过 `--config` 指定实例文件。

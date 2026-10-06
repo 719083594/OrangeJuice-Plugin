@@ -5,7 +5,8 @@ from .catalog import Catalog,mask
 from .system import Monitor
 
 WEB=Path(__file__).resolve().parent.parent/'web'
-VERSION='1.4.0'
+VERSION='1.5.0'
+LABELS=json.loads((Path(__file__).parent/'config_labels.json').read_text(encoding='utf-8'))
 
 class App:
     def __init__(self,settings,data):
@@ -123,10 +124,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path=='/api/runtime' and method=='GET':return self.output(self.app.catalog.runtime())
         if path=='/api/features' and method=='GET':return self.output(self.app.catalog.features())
         if path=='/api/plugins' and method=='GET':return self.output(self.app.catalog.list())
+        if path=='/api/function-control' and method=='POST':
+            self.app.auth.require(session,('owner','admin'))
+            from .commands import function_control
+            result=function_control(self.app.catalog,self.json_body());self.app.audit(user,'function-config',result.get('config',''));return self.output(result)
+        if path=='/api/config-labels' and method=='GET':return self.output(LABELS)
         if path=='/api/plugin' and method=='GET':
             pid=arg('id');item=next((p for p in self.app.catalog.list() if p['id']==pid),None)
             if not item:raise Error('插件不存在',404)
-            item['readme']=self.app.catalog.readme(pid);item['configs']=[config_summary(c) for c in self.app.catalog.configs(pid)];return self.output(item)
+            item['functions']=[x for x in self.app.catalog.features()['items'] if x['pluginId']==pid];item['readme']=self.app.catalog.readme(pid);item['configs']=[config_summary(c) for c in self.app.catalog.configs(pid)];return self.output(item)
         if path=='/api/icon' and method=='GET':
             root=self.app.catalog.plugin(arg('plugin'))
             p=next((root/name for name in ['resources/icon.png','resources/icon.svg'] if (root/name).is_file() and not (root/name).is_symlink()),None)
@@ -135,6 +141,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path=='/api/configs' and method=='GET':return self.output([config_summary(c) for c in self.app.catalog.configs(arg('plugin'))])
         if path=='/api/config' and method=='GET':
             result=self.app.catalog.config(arg('plugin'),arg('id'))
+            result['controls']=self.app.catalog.controls(arg('plugin'),arg('id'),LABELS)
             result['readonly']=result['readonly'] or result.get('ownerOnly',False) and role!='owner'
             return self.output(result)
         if path=='/api/config' and method=='PUT':
@@ -191,6 +198,13 @@ def serve(settings,data):
                     expected=hmac.new(app.auth.bridge_key.encode(),(stamp+'\n'+hashlib.sha256(raw).hexdigest()).encode(),hashlib.sha256).hexdigest()
                     if abs(time.time()-float(stamp))>30 or not hmac.compare_digest(req.get('signature',''),expected):continue
                     if payload.get('action')=='ticket':atomic(responses/p.name,{'ticket':app.auth.ticket(),'expires':time.time()+180})
+                    elif payload.get('action') in ('config-list','config-set','function-control'):
+                        from .commands import run,function_control
+                        try:
+                            result=function_control(app.catalog,payload) if payload.get('action')=='function-control' else run(app.catalog,payload,LABELS)
+                            if result.get('saved'):app.audit('主人机器人指令','config-save',result['plugin']+'/'+result['config'])
+                            atomic(responses/p.name,result)
+                        except Error as error:atomic(responses/p.name,{'error':str(error)})
                 except (OSError,ValueError,TypeError):pass
                 finally:p.unlink(missing_ok=True)
             for p in responses.glob('*.json'):

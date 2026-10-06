@@ -19,7 +19,7 @@ test('groups builtin sources together and shows configuration and per-rule expla
  const richer={...report,pluginGroups:[{id:'framework',title:'内置插件',origin:'framework',configs:[{id:'other.yaml',plugin:'framework',title:'访问控制',fields:[{path:'autoFriend',label:'自动同意好友'}]}]},{id:'WebSearch-Plugin',title:'联网搜索',origin:'extension',configs:[]}],items:report.items.map(x=>({...x,pluginId:x.origin==='framework'?'framework':'WebSearch-Plugin',operations:[{title:'实际用途',command:'#指令 参数',description:'内部权限检查'}]}))};
  const html=view.rows(richer);
  assert.ok(html.includes('内置插件')&&html.includes('我的插件'));
- assert.ok(html.includes('autoFriend')&&html.includes('自动同意好友'));
+ assert.ok(!html.includes('<code>autoFriend</code>')&&html.includes('自动同意好友'));
  assert.ok(html.includes('实际用途')&&html.includes('#指令 参数'));
  assert.ok(html.includes('data-feature-plugin="framework"'));
  assert.ok(!view.rows(richer,{plugin:'framework'}).includes('外部搜索'));
@@ -32,10 +32,10 @@ test('escapes command metadata and shows notices even without command regex',()=
   assert.ok(!html.includes('<script>'));
   assert.ok(html.includes('状态未提供'));
 });
-test('overlap explanation includes evidence and both source files',()=>{
+test('overlap explanation includes evidence and human function names',()=>{
   const duplicated={...report,duplicates:[{label:'同名功能',evidence:'^#系统$',ids:['0','1']}]};
   assert.equal(view.filter(duplicated,{origin:'all',overlapOnly:true}).length,2);
   const html=view.duplicates(duplicated);
-  assert.ok(html.includes('example/welcome.js')&&html.includes('WebSearch-Plugin/index.js'));
+  assert.ok(html.includes('欢迎新人')&&html.includes('外部搜索')&&!html.includes('example/welcome.js'));
   assert.ok(html.includes('不代表一定重复回复'));
 });

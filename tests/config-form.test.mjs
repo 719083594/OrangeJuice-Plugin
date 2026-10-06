@@ -22,7 +22,7 @@ test('common fields, nested sections and channel fields use Chinese labels',()=>
   const html=form.renderTree({publicUrl:'http://127.0.0.1:15082',frameworkName:'通用应用',basic:{enabled:true},channels:[{id:'first',name:'默认',apiKey:'••••••••',maxTokens:1024}],presets:[{prompt:'<script>private fixture</script>'}],chat:{reasoningEffort:'low'}},[],false,fields)
   for(const label of ['管理面板访问地址','应用或框架名称','基础与命令','渠道名称','接口密钥','角色提示词','较低'])assert(html.includes(label))
   assert(html.includes('type="password"'))
-  assert(html.includes('channels.0.apiKey'))
+  assert(!html.includes('channels.0.apiKey'));assert(html.includes(encodeURIComponent(JSON.stringify(['channels',0,'apiKey']))))
   assert(!html.includes('<script>private fixture</script>'))
   assert(html.includes('data-type="string" rows="4"'))
 })
@@ -78,7 +78,7 @@ test('extra configuration field declarations have Chinese labels and retain edit
   const original={extraConfigs:[{id:'sample',path:'settings.json',fields:[{path:'wait',type:'integer',min:1,max:30,required:true,default:5}],ownerOnly:true}]}
   const html=form.renderTree(original)
   for(const label of ['额外配置文件','字段定义','数据类型','最小值','最大值','必填','默认值','仅主人可编辑'])assert(html.includes(label),label)
-  for(const key of ['extraConfigs.0.fields.0.type','extraConfigs.0.fields.0.min','extraConfigs.0.fields.0.max'])assert(html.includes(key),key)
+  for(const key of ['extraConfigs.0.fields.0.type','extraConfigs.0.fields.0.min','extraConfigs.0.fields.0.max'])assert(!html.includes(key),key)
   const edited=form.readFields(original,[{dataset:{path:encodeURIComponent(JSON.stringify(['extraConfigs',0,'fields',0,'min'])),type:'number'},value:'2'}])
   assert.equal(edited.extraConfigs[0].fields[0].min,2)
   assert.equal(edited.extraConfigs[0].fields[0].type,'integer')
@@ -104,11 +104,11 @@ test('all current public framework sample keys render Chinese headings while pre
       const label=form.labels[key]
       assert.match(label||'',/[\u3400-\u9fff]/,filename+':'+key)
       assert(html.includes('aria-label="'+label+'"'),filename+':'+key)
-      assert(html.includes('<small>'+key+'</small>'),filename+':'+key)
+      assert(!html.includes('<small>'+key+'</small>'),filename+':'+key);assert(html.includes(encodeURIComponent(JSON.stringify([key]))))
     }
   }
   const nested=form.renderTree({webhook:{http_timeout:1}})
-  assert(nested.includes('<h3>Webhook 事件接收</h3><small class="subtext">webhook</small>'))
+  assert(nested.includes('<h3>Webhook 事件接收</h3>'));assert(!nested.includes('<small class="subtext">webhook</small>'))
   assert.equal(form.labels.update_time,'自动更新时间')
   assert.equal(form.labels.online_msg_exp,'上线通知冷却时间')
   assert.equal(form.labels.groupCD,'群指令冷却时间（毫秒）')

@@ -5,7 +5,10 @@
   "commands": [
     "#橙汁登录",
     "/橙汁登录",
-    "#橙汁帮助"
+    "#橙汁帮助",
+    "#橙汁配置 插件名",
+    "#橙汁设置 插件名 选项编号 @版本 值",
+    "#橙汁功能 功能名 开或关"
   ],
   "configs": [
     {
@@ -14,22 +17,45 @@
       "file": "config/local.json",
       "defaults": {
         "publicUrl": "http://127.0.0.1:16080",
-        "ipcDirectory": "data/orangejuice"
+        "ipcDirectory": "data/orangejuice",
+        "commandAliases": []
       },
       "reload": "restart",
       "fields": [
         {
           "path": "publicUrl",
           "label": "管理面板访问地址",
-          "type": "string"
+          "type": "string",
+          "description": "修改后需重启机器人。"
         },
         {
           "path": "ipcDirectory",
           "label": "运行信息通信目录",
+          "type": "string",
+          "description": "修改后需重启机器人。"
+        },
+        {
+          "path": "commandAliases",
+          "label": "自定义指令",
+          "type": "array",
+          "itemDefaults": {
+            "alias": "",
+            "target": ""
+          },
+          "description": "自定义指令映射到原始指令；目标插件仍检查使用权限。"
+        },
+        {
+          "path": "commandAliases.*.alias",
+          "label": "自定义指令",
+          "type": "string"
+        },
+        {
+          "path": "commandAliases.*.target",
+          "label": "原始指令",
           "type": "string"
         }
       ]
     }
   ],
-  "version": "1.4.0"
+  "version": "1.5.0"
 }

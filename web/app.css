@@ -13,3 +13,5 @@
 .feature-fields>div{display:grid;grid-template-columns:minmax(160px,1fr) 2fr;gap:6px 18px;border-bottom:1px solid #eef2f6;padding-bottom:10px}.feature-fields small{grid-column:2;color:#64748b}
 .feature-toolbar{flex-wrap:wrap}.feature-toolbar select{max-width:220px}.feature-item .actions{flex-wrap:wrap}
 @media(max-width:700px){.feature-plugin{padding:16px}.feature-fields>div{grid-template-columns:1fr}.feature-fields small{grid-column:1}.feature-item .card-head{flex-wrap:wrap;gap:12px}}
+
+.function-table td{vertical-align:top;min-width:130px}.function-table td:nth-child(3){min-width:260px;max-width:440px}.function-table .button{margin:3px}.field-command{margin-top:8px;font-size:12px}

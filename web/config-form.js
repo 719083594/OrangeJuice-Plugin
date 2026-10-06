@@ -3,6 +3,7 @@
 // This module renders data only. Plugins supply labels and rules in their manifest.
 globalThis.OrangeJuiceConfigForm = (() => {
   const labels = {
+    commandAliases: '自定义指令', alias: '自定义指令', target: '原始指令',
     publicUrl: '管理面板访问地址', frameworkName: '应用或框架名称', frameworkRoot: '应用根目录',
     frameworkConfigsDirectory: '应用配置目录', pluginsDirectory: '插件安装目录', bridgeDirectory: '机器人通信目录',
     runtimeFile: '机器人运行信息文件', readonlyPlugins: '只读插件列表', extraConfigs: '额外配置文件',
@@ -61,6 +62,7 @@ globalThis.OrangeJuiceConfigForm = (() => {
     other: '好友与访问权限', redis: 'Redis 连接', renderer: '截图渲染器',
     satori: 'Satori 协议连接', server: 'HTTP 服务'
   };
+  Object.assign(labels, globalThis.OrangeJuiceLabels || {});
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   const plainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
   function metadata(path, fields = []) {
@@ -93,7 +95,7 @@ globalThis.OrangeJuiceConfigForm = (() => {
     else if (Array.isArray(value) || value === null) input = `<textarea ${attr} data-type="json">${esc(JSON.stringify(value, null, 2))}</textarea>`;
     else if (meta.multiline && typeof value === 'string' && !meta.secret) input = `<textarea ${attr} data-type="string" rows="${Math.max(2, Number(meta.rows) || 4)}">${esc(value)}</textarea>`;
     else input = `<input ${attr} type="${meta.secret || value === '••••••••' ? 'password' : typeof value === 'number' ? 'number' : 'text'}" data-type="${typeof value}" value="${esc(value)}" ${meta.min !== undefined ? `min="${esc(meta.min)}"` : ''} ${meta.max !== undefined ? `max="${esc(meta.max)}"` : ''} step="any">`;
-    return `<div class="form-field"><div class="form-label">${esc(title)}<small>${esc(path.join('.'))}${meta.description ? ' · ' + esc(meta.description) : ''}</small></div><div>${input}</div></div>`;
+    return `<div class="form-field"><div class="form-label">${esc(title)}${meta.description ? '<small>' + esc(meta.description) + '</small>' : ''}</div><div>${input}</div></div>`;
   }
   function arraySchema(path, fields) {
     return fields.some(field => {
@@ -106,10 +108,10 @@ globalThis.OrangeJuiceConfigForm = (() => {
       const child = [...path, key], meta = metadata(child, fields);
       const locked = readonly || meta.readonly === true;
       if (meta.status === 'planned') return field(item, child, locked, fields);
-      if (plainObject(item)) return `<section class="form-section"><h3>${esc(label(child, fields))}</h3><small class="subtext">${esc(child.join('.'))}</small>${meta.description ? `<p class="subtext">${esc(meta.description)}</p>` : ''}${renderTree(item, child, locked, fields)}</section>`;
+      if (plainObject(item)) return `<section class="form-section"><h3>${esc(label(child, fields))}</h3>${meta.description ? `<p class="subtext">${esc(meta.description)}</p>` : ''}${renderTree(item, child, locked, fields)}</section>`;
       if (Array.isArray(item) && (arraySchema(child, fields) || item.length > 0 && item.every(plainObject))) {
         const pointer = encodeURIComponent(JSON.stringify(child));
-        return `<section class="form-section"><div class="card-head"><div><h3>${esc(label(child, fields))}</h3><small class="subtext">${esc(child.join('.'))}${meta.description ? ' · ' + esc(meta.description) : ''}</small></div><button class="button" type="button" data-array-add="${pointer}" ${locked ? 'disabled' : ''}>添加一项</button></div>${item.length ? item.map((entry, index) => `<section class="card spaced"><div class="card-head"><h3>第 ${index + 1} 项${entry.name || entry.title ? ' · ' + esc(entry.name || entry.title) : ''}</h3><button class="button danger" type="button" data-array-remove="${pointer}" data-array-index="${index}" ${locked ? 'disabled' : ''}>删除此项</button></div>${renderTree(entry, [...child, index], locked, fields)}</section>`).join('') : '<p class="subtext">暂无配置项，添加后可以逐字段填写。</p>'}</section>`;
+        return `<section class="form-section"><div class="card-head"><div><h3>${esc(label(child, fields))}</h3>${meta.description ? '<small class="subtext">' + esc(meta.description) + '</small>' : ''}</div><button class="button" type="button" data-array-add="${pointer}" ${locked ? 'disabled' : ''}>添加一项</button></div>${item.length ? item.map((entry, index) => `<section class="card spaced"><div class="card-head"><h3>第 ${index + 1} 项${entry.name || entry.title ? ' · ' + esc(entry.name || entry.title) : ''}</h3><button class="button danger" type="button" data-array-remove="${pointer}" data-array-index="${index}" ${locked ? 'disabled' : ''}>删除此项</button></div>${renderTree(entry, [...child, index], locked, fields)}</section>`).join('') : '<p class="subtext">暂无配置项，添加后可以逐字段填写。</p>'}</section>`;
       }
       return field(item, child, readonly, fields);
     }).join('');

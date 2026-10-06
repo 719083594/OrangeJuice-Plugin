@@ -11,11 +11,21 @@ PUBLIC_TOKEN_FIELDS={'maxtoken','maxtokens','maxoutputtokens','inputtokens','out
 BLOCKED={'__proto__','constructor','prototype'}
 
 def digest(raw):return hashlib.sha256(raw).hexdigest()
+def normalize_keys(value):
+    if isinstance(value,list):return [normalize_keys(v) for v in value]
+    if not isinstance(value,dict):return value
+    result={}
+    for key,item in value.items():
+        if not isinstance(key,(str,int,float,bool)) and key is not None:raise Error('配置字段名称不支持转换为文字')
+        name=key if isinstance(key,str) else next(iter(json.loads(json.dumps({key:None}))))
+        if name in result:raise Error('配置字段名称转换后重复，需先消除歧义')
+        result[name]=normalize_keys(item)
+    return result
 def read_document(path):
     raw=path.read_bytes()
     if len(raw)>1024*1024:raise Error('配置文件超过1MB')
     value=json.loads(raw) if path.suffix=='.json' else yaml.safe_load(raw)
-    return ({} if value is None else value),digest(raw)
+    return normalize_keys({} if value is None else value),digest(raw)
 def secret_key(key):return bool(SECRET.search(key)) and re.sub(r'[_\-]','',key.lower()) not in PUBLIC_TOKEN_FIELDS
 def mask(value,key=''):
     if secret_key(key) and value not in (None,'',{},[]):return MASK
@@ -108,7 +118,6 @@ class Catalog:
             plugin=metadata.get(pid,{})
             try:
                 entries=self.configs(pid)
-                if pid=='OrangeJuice-Plugin':entries=entries+self.configs('orangejuice')
             except (Error,OSError,ValueError,TypeError):entries=[]
             configs=[{'id':c['id'],'plugin':'orangejuice' if 'editableKeys' in c else pid,'title':c['title'],'readonly':c['readonly'],'reload':c['reload'],
                       'fields':[{k:v for k,v in f.items() if k in ('path','label','description','readonly','status')} for f in c['fields'][:500] if isinstance(f,dict)]} for c in entries]
@@ -116,11 +125,18 @@ class Catalog:
             title='内置插件' if pid=='framework' else plugin.get('title',pid)
             for item in features:
                 item['pluginTitle']=title
-                for ref in item['configRefs']:ref['available']=any(c['id']==ref['id'] for c in configs)
-                if pid!='framework':item['configRefs']=[{'plugin':c['plugin'],'id':c['id'],'paths':[],'available':True} for c in configs]
+                for ref in item['configRefs']:
+                    match=next((c for c in configs if c['id']==ref['id']),None)
+                    ref['available']=bool(match);ref['title']=match['title'] if match else '相关设置'
+                if pid!='framework':item['configRefs']=[{'plugin':c['plugin'],'id':c['id'],'paths':[],'available':True,'title':c['title']} for c in configs]
+            if pid=='AI-Plugin':
+                try:prefix=self.config(pid,'settings')['value'].get('basic',{}).get('commandPrefix','#AI')
+                except (Error,OSError,ValueError):prefix='#AI'
+                for item in features:
+                    for op in item['operations']:op['command']=op['command'].replace('#AI',str(prefix))
             declared=plugin.get('capabilities',[])
             report['pluginGroups'].append({'id':pid,'title':title,'origin':'framework' if pid=='framework' else features[0]['origin'] if features else 'extension',
-                'description':'框架自带功能统一归类，原始文件位置保留在各项说明中。' if pid=='framework' else plugin.get('description',''),
+                'description':'框架自带功能统一展示，逐项查看用途、指令与设置。' if pid=='framework' else plugin.get('description',''),
                 'configs':configs,'commands':plugin.get('commands',[]),'capabilities':declared,'featureCount':len(features)})
         return report
     def safe(self,path,root):
@@ -151,7 +167,7 @@ class Catalog:
         result=[]
         for item in declared[:100]:
             if not isinstance(item,dict):continue
-            result.append({k:str(item.get(k,''))[:2000] for k in ('id','title','description','status','reason')})
+            result.append({**{k:str(item.get(k,''))[:2000] for k in ('id','title','description','status','reason')},'configPaths':[str(p)[:200] for p in item.get('configPaths',[])[:100] if isinstance(p,str)]})
         return result
     def list(self):
         result=[];runtime=self.runtime();loaded={x.get('directory'):x for x in runtime.get('plugins',[])}
@@ -172,12 +188,15 @@ class Catalog:
             repository=presentation.get('repository',pkg.get('repository',{}))
             if isinstance(repository,dict):repository=repository.get('url','')
             if not isinstance(repository,str) or not repository.startswith(('https://github.com/','https://gitee.com/')):repository=''
-            item={'id':root.name,'title':title,'description':presentation.get('description',pkg.get('description','未提供功能介绍')),'author':str(author),'version':presentation.get('version',pkg.get('version','未提供')),'repository':repository.removesuffix('.git'),'native':bool(manifest),'configCount':len(configs),'builtin':root.name in ('adapter','system','other','example'),'readonly':root.name in self.settings.get('readonlyPlugins',[]),'loaded':loaded.get(root.name,{}).get('loaded'),'icon':any((root/p).is_file() for p in ['resources/icon.png','resources/icon.svg']),'homepage':presentation.get('homepage'),'commands':presentation.get('commands',[])}
+            item={'id':root.name,'title':title,'description':presentation.get('description',pkg.get('description','未提供功能介绍')),'author':str(author),'version':manifest.get('version') or pkg.get('version') or presentation.get('version','未提供'),'repository':repository.removesuffix('.git'),'native':bool(manifest),'configCount':len(configs),'builtin':root.name in ('adapter','system','other','example'),'readonly':root.name in self.settings.get('readonlyPlugins',[]),'loaded':loaded.get(root.name,{}).get('loaded'),'icon':any((root/p).is_file() for p in ['resources/icon.png','resources/icon.svg']),'homepage':presentation.get('homepage'),'commands':presentation.get('commands',[])}
             item['configError']=config_error
             item['managementPanel']=manifest.get('managementPanel') if isinstance(manifest.get('managementPanel'),str) else None
             try:item['capabilities']=self.capabilities(root,manifest)
             except (Error,OSError,ValueError,TypeError):item['capabilities']=[]
             result.append(item)
+        if self.configs('framework') or any(x.get('origin')=='framework' for x in inventory(runtime).get('items',[])):
+            result=[p for p in result if not p['builtin']]
+            result.append({'id':'framework','title':'内置插件','description':'框架自带的指令、自动事件和共享设置。','author':self.settings.get('frameworkName','应用框架'),'version':'随框架更新','repository':'','native':True,'builtin':True,'readonly':False,'loaded':True,'icon':False,'commands':[],'capabilities':[],'managementPanel':None,'configCount':len(self.configs('framework'))})
         return result
     def configs(self,pid):
         if pid=='orangejuice':
@@ -187,8 +206,21 @@ class Catalog:
             return [{'id':'platform','title':'橙汁平台设置','path':path,'root':path.parent,'readonly':False,'ownerOnly':True,
                      'fields':PLATFORM_FIELDS,'reload':'restart','editableKeys':PLATFORM_KEYS}]
         if pid=='framework':
+            from .commands import config_title
             directory=self.safe(Path(self.settings.get('frameworkConfigsDirectory',self.framework/'config/config')),self.framework)
-            return [{'id':p.name,'title':p.stem,'path':p,'root':directory,'readonly':False,'fields':[],'reload':'restart'} for p in sorted(directory.glob('*')) if p.suffix in ('.json','.yaml','.yml') and not p.is_symlink()]
+            result=[]
+            for p in sorted(directory.glob('*')):
+                if p.suffix not in ('.json','.yaml','.yml') or p.is_symlink():continue
+                fields=[]
+                if p.stem=='group':
+                    value=read_document(p)[0]
+                    if isinstance(value,dict):
+                        for key in value:
+                            title='默认群聊设置' if key=='default' else '群 '+key+' 的单独设置' if key.isdigit() else ('账号 '+key.split(':')[0]+' 的默认群聊设置' if key.endswith(':default') else '账号 '+key.split(':')[0]+' · 群 '+key.split(':',1)[1]+' 的单独设置') if ':' in key else key
+                            fields.append({'path':key,'label':title,'type':'object'})
+                    fields.extend([{'path':'*.enable','label':'允许使用的功能','type':'array','description':'留空时不限定功能；填写名称后使用允许列表。'}, {'path':'*.disable','label':'禁用的功能','type':'array','description':'填写功能名称；默认开关也可在内置插件功能表修改。'}])
+                result.append({'id':p.name,'title':config_title({'id':p.name,'title':p.stem},'framework'),'path':p,'root':directory,'readonly':False,'fields':fields,'reload':'restart'})
+            return result
         root=self.plugin(pid);manifest=self.manifest(root);entries=[];seen=set()
         readonly=pid in self.settings.get('readonlyPlugins',[])
         for i,cfg in enumerate(manifest.get('configs',[])):
@@ -205,12 +237,16 @@ class Catalog:
             if not directory.is_dir() or directory.is_symlink():continue
             for p in sorted(directory.iterdir()):
                 if p.is_symlink() or not p.is_file() or p.suffix not in ('.json','.yaml','.yml') or p in seen:continue
-                if p.name in ('package.json','package-lock.json','pnpm-lock.yaml','orangejuice.plugin.json') or re.search(r'example|sample|test|verification|schema|lock',p.name,re.I):continue
+                if p.name in ('package.json','package-lock.json','pnpm-lock.yaml','orangejuice.plugin.json','integration.json') or re.search(r'example|sample|test|verification|schema|lock',p.name,re.I):continue
                 if directory.name=='data' and p.name!='config.json':continue
                 p=self.safe(p,root);entries.append({'id':'file:'+p.relative_to(root).as_posix(),'title':p.relative_to(root).as_posix(),'path':p,'root':root,'readonly':readonly,'fields':[],'reload':'restart'});seen.add(p)
         for cfg in self.settings.get('extraConfigs',[]):
             if cfg.get('plugin')==pid:
-                p=Path(cfg['path']).resolve();entries.append({'id':cfg['id'],'title':cfg.get('title',p.name),'path':p,'root':p.parent,'readonly':readonly or cfg.get('readonly',False),'ownerOnly':bool(cfg.get('ownerOnly',False)),'fields':cfg.get('fields',[]),'reload':cfg.get('reload','restart')})
+                p=Path(cfg['path']).resolve()
+                if str(p)==self.settings.get('_settingsFile'):continue
+                entries.append({'id':cfg['id'],'title':cfg.get('title',p.name),'path':p,'root':p.parent,'readonly':readonly or cfg.get('readonly',False),'ownerOnly':bool(cfg.get('ownerOnly',False)),'fields':cfg.get('fields',[]),'reload':cfg.get('reload','restart')})
+        if pid=='OrangeJuice-Plugin':entries+=self.configs('orangejuice')
+        if any(c['id']=='collector' for c in entries):entries=[c for c in entries if c['id']!='collector-example']
         return entries
     def entry(self,pid,cid):
         item=next((x for x in self.configs(pid) if x['id']==cid),None)
@@ -218,8 +254,12 @@ class Catalog:
         self.safe(item['path'],item['root']);return item
     def config(self,pid,cid):
         item=self.entry(pid,cid);p=item['path'];value,revision=read_document(p) if p.exists() else (item.get('defaults',{}),'missing')
+        if pid=='OrangeJuice-Plugin' and cid=='bridge':value={**item.get('defaults',{}),**value}
         if 'editableKeys' in item:value={k:v for k,v in value.items() if k in item['editableKeys']}
         return {'id':cid,'title':item['title'],'value':mask_fields(value,item['fields']),'revision':revision,'readonly':item['readonly'],'ownerOnly':item.get('ownerOnly',False),'fields':item['fields'],'reload':item['reload'],'format':p.suffix.removeprefix('.')}
+    def controls(self,pid,cid,labels=None):
+        from .commands import options
+        return [x for x in options(self,pid,labels) if x['config']==cid]
     def validate(self,value,fields):
         for field in fields:
             for _,current in field_values(value,str(field.get('path','')).split('.')):
@@ -278,10 +318,11 @@ class Catalog:
         folder=self.safe(self.backups/bid,self.backups)
         if not (folder/'meta.json').exists():raise Error('备份不存在',404)
         meta=json.loads((folder/'meta.json').read_text(encoding='utf-8'));item=self.entry(meta['plugin'],meta['config'])
-        raw=(folder/'content').read_bytes();value=json.loads(raw) if item['path'].suffix=='.json' else yaml.safe_load(raw)
+        raw=(folder/'content').read_bytes();value=normalize_keys(json.loads(raw) if item['path'].suffix=='.json' else yaml.safe_load(raw))
         if 'editableKeys' in item:value={k:v for k,v in value.items() if k in item['editableKeys']}
         return self.save(meta['plugin'],meta['config'],value,revision)
     def readme(self,pid):
+        if pid=='framework':return '内置插件由当前框架提供。功能与指令页列出实际加载的命令和事件；配置项用于修改共享设置。主人私聊可用 #橙汁配置 内置插件 查看配置命令。'
         root=self.plugin(pid)
         for name in ['README.md','readme.md','README.MD']:
             p=root/name
