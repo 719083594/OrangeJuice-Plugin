@@ -5,7 +5,7 @@ from .catalog import Catalog,mask
 from .system import Monitor
 
 WEB=Path(__file__).resolve().parent.parent/'web'
-VERSION='1.5.1'
+VERSION='1.6.0'
 LABELS=json.loads((Path(__file__).parent/'config_labels.json').read_text(encoding='utf-8'))
 
 class App:

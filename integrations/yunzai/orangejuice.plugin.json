@@ -3,6 +3,10 @@
   "title": "OrangeJuice-Plugin",
   "description": "独立配置管理平台，提供系统监测、插件配置、备份恢复与权限管理。",
   "commands": [
+    "#指令",
+    "/指令",
+    "#指令表",
+    "/指令表",
     "#橙汁登录",
     "/橙汁登录",
     "#橙汁帮助",
@@ -18,7 +22,10 @@
       "defaults": {
         "publicUrl": "http://127.0.0.1:16080",
         "ipcDirectory": "data/orangejuice",
-        "commandAliases": []
+        "commandAliases": [],
+        "commandTableEnabled": true,
+        "commandTableCooldownMs": 5000,
+        "commandTableForward": true
       },
       "reload": "restart",
       "fields": [
@@ -53,9 +60,29 @@
           "path": "commandAliases.*.target",
           "label": "原始指令",
           "type": "string"
+        },
+        {
+          "path": "commandTableEnabled",
+          "label": "启用功能指令表",
+          "type": "boolean",
+          "description": "所有用户可查询公开表；仅主人私聊显示完整表。保存后立即生效。"
+        },
+        {
+          "path": "commandTableCooldownMs",
+          "label": "指令表查询冷却（毫秒）",
+          "type": "integer",
+          "min": 0,
+          "max": 600000,
+          "description": "同一用户两次查询的最短间隔，默认5000毫秒。保存后立即生效。"
+        },
+        {
+          "path": "commandTableForward",
+          "label": "指令表使用合并转发",
+          "type": "boolean",
+          "description": "按功能分类合并为一条转发；平台不支持时自动发送完整文字。保存后立即生效。"
         }
       ]
     }
   ],
-  "version": "1.5.1"
+  "version": "1.6.0"
 }
