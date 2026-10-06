@@ -21,5 +21,7 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: node --check web/app.js
       - run: node --check web/config-form.js
+      - run: node --check web/features-view.js
       - run: node --check integrations/yunzai/index.js
-      - run: node --test tests/bridge.test.mjs tests/config-form.test.mjs
+      - run: node --check integrations/yunzai/feature-runtime.mjs
+      - run: node --test tests/bridge.test.mjs tests/config-form.test.mjs tests/feature-runtime.test.mjs tests/features-view.test.mjs

@@ -15,6 +15,7 @@
 | GET | /api/system | 主机资源，3秒缓存 |
 | GET | /api/services | 容器、进程，20秒缓存 |
 | GET | /api/runtime | 框架运行信息 |
+| GET | /api/features | 功能清单、模块来源、默认群聊状态、入口重叠证据；登录后只读 |
 | GET | /api/plugins | 插件清单 |
 | GET | /api/plugin?id=目录 | 插件主页数据、README、配置索引、能力状态、已登记独立入口ID |
 | GET | /api/icon?plugin=目录 | 本地图标 |
@@ -35,3 +36,5 @@
 | POST | /api/internal/ticket | 专供本机 CLI；X-OJ-Time/X-OJ-Signature HMAC，非浏览器认证 |
 
 浏览器只消费临时票据，不保存票据到本地存储。服务重启使全部会话失效。内部 CLI 签名采用请求时间加换行加规范紧凑 JSON 的 SHA256；桥接使用文件 IPC。
+
+`/api/features` 返回 `available/stale/timestamp/items/files/duplicates/broadEntries/truncated/groupControl`。`items` 包含 name、description、source（插件目录相对路径）、origin、kind、event、rules、hooks、handlers、priority、defaultState；定时任务另有 cron、scheduled。缺少快照或默认群聊配置时显示未知。重复检查仅比较同名入口、相同正则源码与 flags 且事件范围交叉，不运行正则表达式，也不自动禁用插件。账号、群号及实例密钥不进入功能清单。

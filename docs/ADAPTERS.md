@@ -81,6 +81,28 @@
 
 30秒没有更新时标为过期；没有可靠加载证据时 loaded 应为 null，面板显示状态未提供。
 
+### 功能快照
+
+运行信息可附带 `featureInventory`，由框架适配器读取已注册的入口，不导入新插件或执行处理函数：
+
+```json
+{
+  "schemaVersion": 1,
+  "features": [{
+    "name": "欢迎新人", "description": "新人入群欢迎",
+    "source": "example/welcome.js", "origin": "framework",
+    "kind": "notice", "event": "notice.group.increase",
+    "rules": [], "hooks": ["accept"], "handlers": [], "priority": 5000
+  }],
+  "files": [{"source":"example/welcome.js","origin":"framework","importedClasses":2}],
+  "truncated": false
+}
+```
+
+`origin` 为 framework、extension 或 unknown。`kind` 为 command、notice、hook、integration、task 或 module。命令规则包含 pattern（正则源码）、flags、handler、permission 和 event；定时任务包含 cron 与 scheduled。仅初始化的模块仍可登记为 module；模块登记不证明该模块的全部初始化动作成功。云崽桥接读取 priority、pluginCountMap、task 与 taskMap，不实例化插件。
+
+来源必须是插件目录相对路径，不能包含绝对路径或 `..`。快照不应包含密钥、实例配置、消息正文和账号列表。桥接最多提交 2000 项功能、1500 个文件、每项 80 条规则，并限制功能主体约 600KB，超出时设置 truncated；核心运行文件上限 2MB。大型框架须在适配器中提前截断并标记。此协议与框架目录结构无关；没有快照时面板明确显示未提供。
+
 ## 主人登录 IPC
 
 适配器在确认主人且属于私聊后，写入 bridgeDirectory/requests/随机UUID.json：payload 为 `{"action":"ticket"}`，time 为 Unix 秒数字符串，signature 为 HMAC-SHA256。签名原文是 `time + '\n' + SHA256(紧凑JSON(payload))`，密钥来自 bridgeDirectory/bridge.key。核心校验时间偏差30秒，生成3分钟一次有效 ticket，写入 responses/同名文件。适配器读取后删除响应并发给主人。

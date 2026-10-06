@@ -5,7 +5,7 @@ from .catalog import Catalog,mask
 from .system import Monitor
 
 WEB=Path(__file__).resolve().parent.parent/'web'
-VERSION='1.2.3'
+VERSION='1.3.0'
 
 class App:
     def __init__(self,settings,data):
@@ -121,6 +121,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path=='/api/system' and method=='GET':return self.output(self.app.monitor.snapshot())
         if path=='/api/services' and method=='GET':return self.output(self.app.monitor.services())
         if path=='/api/runtime' and method=='GET':return self.output(self.app.catalog.runtime())
+        if path=='/api/features' and method=='GET':return self.output(self.app.catalog.features())
         if path=='/api/plugins' and method=='GET':return self.output(self.app.catalog.list())
         if path=='/api/plugin' and method=='GET':
             pid=arg('id');item=next((p for p in self.app.catalog.list() if p['id']==pid),None)

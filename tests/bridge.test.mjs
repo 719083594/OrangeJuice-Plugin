@@ -13,7 +13,7 @@ test('TRSS registry metadata is excluded; classic bot and unknown status remain 
     fs.writeFileSync(path.join(root,'package.json'),'{"type":"module"}')
     fs.writeFileSync(path.join(root,'lib/plugins/loader.js'),"export default {pluginCountMap:new Map([['OrangeJuice-Plugin',1]]),priority:[{}]}")
     fs.writeFileSync(path.join(root,'lib/plugins/plugin.js'),"export default class {constructor(options){Object.assign(this,options)}}")
-    const source=fileURLToPath(new URL('../integrations/yunzai/index.js',import.meta.url)),target=path.join(root,'plugins/OrangeJuice-Plugin/index.js');fs.copyFileSync(source,target)
+    const source=fileURLToPath(new URL('../integrations/yunzai/index.js',import.meta.url)),target=path.join(root,'plugins/OrangeJuice-Plugin/index.js');fs.copyFileSync(source,target);fs.copyFileSync(fileURLToPath(new URL('../integrations/yunzai/feature-runtime.mjs',import.meta.url)),path.join(root,'plugins/OrangeJuice-Plugin/feature-runtime.mjs'))
     process.chdir(root);globalThis.plugin=class{constructor(options){Object.assign(this,options)}};globalThis.logger={warn:()=>{}}
     const registry=new EventEmitter();registry.url='metadata';registry.demo={uin:'demo',nickname:'fixture',adapter:{name:'OneBotv11'},ws:{readyState:1},fl:new Map([['friend',{user_id:'fixture',nickname:'sample'}]]),gl:new Map()};globalThis.Bot={bots:registry}
     const {OrangeJuice}=await import(pathToFileURL(target));const bridge=new OrangeJuice();bridge.init()

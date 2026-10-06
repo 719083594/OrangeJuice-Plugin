@@ -1,5 +1,6 @@
 import copy,hashlib,json,math,os,re,secrets,shutil,subprocess,threading,time
 from pathlib import Path
+from .features import inventory
 import yaml
 from .auth import Error,atomic
 
@@ -83,8 +84,20 @@ class Catalog:
         try:
             p=Path(self.settings.get('runtimeFile',self.data/'runtime.json'));raw=p.read_bytes()
             if len(raw)>2_000_000:return {}
-            result=json.loads(raw);result['stale']=time.time()-result.get('timestamp',0)>30;return result
+            result=json.loads(raw)
+            if not isinstance(result,dict):return {'stale':True,'bots':[],'plugins':[]}
+            stamp=result.get('timestamp',0)
+            result['stale']=not isinstance(stamp,(int,float)) or not math.isfinite(stamp) or time.time()-stamp>30
+            return result
         except (OSError,ValueError):return {'stale':True,'bots':[],'plugins':[]}
+    def features(self):
+        group={}
+        try:
+            directory=self.safe(Path(self.settings.get('frameworkConfigsDirectory',self.framework/'config/config')),self.framework)
+            file=self.safe(directory/'group.yaml',directory)
+            if file.is_file():group,_=read_document(file)
+        except (Error,OSError,ValueError,yaml.YAMLError):pass
+        return inventory(self.runtime(),group)
     def safe(self,path,root):
         root=Path(root).resolve();p=Path(path)
         if p.is_symlink() or not p.resolve().is_relative_to(root):raise Error('配置路径不允许访问',403)

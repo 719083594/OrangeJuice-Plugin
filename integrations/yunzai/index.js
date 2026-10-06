@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import {randomUUID,createHmac,createHash} from 'node:crypto'
 import PluginsLoader from '../../lib/plugins/loader.js'
+import {featureSnapshot} from './feature-runtime.mjs'
 const PluginBase=globalThis.plugin||(await import('../../lib/plugins/plugin.js')).default
 
 const root=path.resolve('data/orangejuice')
@@ -22,7 +23,7 @@ function publishRuntime(){
     const counts=PluginsLoader.pluginCountMap instanceof Map?PluginsLoader.pluginCountMap:null
     const dirs=fs.readdirSync('plugins',{withFileTypes:true}).filter(x=>x.isDirectory()).map(x=>x.name)
     const plugins=dirs.map(directory=>({directory,loaded:counts?[...counts.keys()].some(k=>String(k).split('/')[0]===directory):null}))
-    atomic(path.join(ipc,'runtime.json'),{timestamp:Date.now()/1000,bots,plugins,nodeVersion:process.version,botRss:process.memoryUsage().rss,botUptime:process.uptime(),loadedFunctions:PluginsLoader.priority?.length??null})
+    atomic(path.join(ipc,'runtime.json'),{timestamp:Date.now()/1000,bots,plugins,nodeVersion:process.version,botRss:process.memoryUsage().rss,botUptime:process.uptime(),loadedFunctions:PluginsLoader.priority?.length??null,featureInventory:featureSnapshot(PluginsLoader)})
   }catch(error){logger.warn('[OrangeJuice] 运行信息同步失败：'+error.message)}
 }
 async function ticket(){

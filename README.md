@@ -13,12 +13,17 @@
 | 首页 | CPU、内存、存储、插件数量、框架信息与管理入口 |
 | 系统监测 | 磁盘、交换内存、网络累计流量、Docker 容器、进程内存 |
 | 插件管理 | 名称、图标、作者、版本、主页、说明、配置、安装、更新与卸载 |
+| 功能清单 | 已注册命令、通知事件、钩子、定时任务、模块来源及入口重叠提示 |
 | 配置管理 | JSON/YAML 逐字段表单、原始 JSON 编辑、范围校验、密钥遮罩、覆盖冲突检查 |
 | 机器人账号 | 连接状态、好友与群列表，由框架适配器同步 |
 | 面板账号 | 主人、管理员、观察员角色与密码管理 |
 | 备份与记录 | 保存前自动备份、恢复、操作审计 |
 
 登录支持账号密码、控制台验证码、主人私聊临时链接。临时链接三分钟内一次有效，验证码五分钟内一次有效。
+
+“功能清单”默认显示框架内置功能。云崽桥接会同步欢迎新人、退群通知、系统命令、自动任务等注册信息；可按名称、来源文件、事件和类型筛选，也可切换“全部功能”对照扩展插件。相同名称或相同规则且事件范围交叉时会提示可能重叠，实际执行仍取决于优先级和插件内部判断。
+
+清单读取框架注册表，不执行插件或触发规则。“默认状态”对应群聊默认启用 / 禁用列表，单个账号、群的覆盖配置需在“打开群聊配置”中核对；定时任务和初始化模块不受该列表控制。没有注册为入口的内部辅助方法及外部服务功能不在此清单中。其他框架可按适配协议提供功能快照；没有快照时明确显示未提供，不推断为零个功能。
 
 ## 安装
 
@@ -91,7 +96,7 @@ python -m orangejuice.server diagnose --config config/local.json --data data
 python -m unittest discover -s tests -v
 node --check web/app.js
 node --check integrations/yunzai/index.js
-node --test tests/bridge.test.mjs tests/config-form.test.mjs
+node --test tests/bridge.test.mjs tests/config-form.test.mjs tests/feature-runtime.test.mjs tests/features-view.test.mjs
 ```
 
 接口列表见 [API](docs/API.md)，锅巴接口调研与对应关系见 [调研报告](docs/GUOBA-RESEARCH.md)。本项目使用独立 API，不替代其他程序对锅巴 API 的调用；原有 `guoba.support.js` 配置回调需迁移为橙汁声明或适配器。

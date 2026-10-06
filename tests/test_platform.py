@@ -31,6 +31,21 @@ class PlatformTest(unittest.TestCase):
         self.assertEqual(self.call('/api/config?plugin=sample&id=settings','PUT',{'value':{},'revision':'x'},csrf=False)[0],403)
         self.assertEqual(self.call('/api/auth/login','POST',{'username':'owner','password':'x'},cookie=False,origin='https://other.example')[0],403)
         status,me,headers=self.call('/api/me');self.assertEqual(status,200);self.assertEqual(me['role'],'owner');self.assertIn('frame-ancestors',headers['Content-Security-Policy'])
+    def test_feature_inventory_authenticated_readonly_and_default_controls(self):
+        self.assertEqual(self.call('/api/features',cookie=False)[0],401)
+        self.assertFalse(self.call('/api/features')[1]['available'])
+        directory=self.root/'config/config';directory.mkdir(parents=True)
+        (directory/'group.yaml').write_text('default:\n  disable: [欢迎新人]\n  enable: []\n',encoding='utf-8')
+        fixture=self.root/'runtime.json';fixture.write_text(json.dumps({'timestamp':time.time(),'featureInventory':{'schemaVersion':1,'features':[{'name':'欢迎新人','source':'example/welcome.js','origin':'framework','kind':'notice','event':'notice.group.increase'}]}}),encoding='utf-8')
+        self.settings['runtimeFile']=str(fixture)
+        status,report,_=self.call('/api/features');self.assertEqual(status,200)
+        self.assertTrue(report['available']);self.assertFalse(report['stale']);self.assertEqual(report['items'][0]['defaultState'],'disabled')
+        for role in ('admin','viewer'):
+            self.app.auth.user_update(self.session,{'username':role,'role':role,'password':'long-test-password'})
+            sid,self.session=self.app.auth.session(role);self.cookie='oj_session='+sid
+            status,report,_=self.call('/api/features');self.assertEqual(status,200)
+            sid,self.session=self.app.auth.session('owner');self.cookie='oj_session='+sid
+        self.assertEqual(self.call('/api/features','POST',{})[0],404)
     def test_external_metadata_preserves_configuration_and_permissions(self):
         self.settings['pluginMetadata']={'sample':{'title':'External title','description':'External description','author':{'name':'Publisher'},'repository':'https://github.com/example/sample.git','configs':[{'file':'/private'}],'readonly':True}}
         item=next(x for x in self.app.catalog.list() if x['id']=='sample')
