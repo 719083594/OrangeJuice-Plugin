@@ -101,3 +101,9 @@ node --test tests/bridge.test.mjs tests/config-form.test.mjs
 感谢 Guoba-Plugin 与 Guoba 的前端项目提供管理流程研究参考；感谢 TRSS-Yunzai、Yunzai-Bot、ChatGPT-Plugin 及实际依赖 psutil、PyYAML。使用范围与来源见 [致敬](docs/CREDITS.md) 与 [第三方说明](THIRD_PARTY_NOTICES.md)。
 
 独立管理核心和网页采用 [PolyForm Noncommercial 1.0.0](LICENSE)，允许其许可范围内的非商业使用、修改和分享。`integrations/yunzai` 是单独采用 GPL-3.0-or-later 的可选组件；该组件遵守 GPL，其许可不附加非商业限制。第三方项目各自遵循原许可证。
+
+## 插件组合与入口
+
+OrangeJuice 的 Python 服务独立运行，系统监测使用自己的采集模块，配置目录、插件清单和外部工作台按实例设置登记。AI、WebSearch、ServerStatus 均为可选管理对象，缺少这些插件不会阻止面板启动。面板读取和修改配置，不代替插件处理聊天、搜索或状态命令。
+
+云崽桥接仅提供主人登录和运行信息同步；独立部署可以通过网页登录使用面板。外部工作台链接需对应服务在线，停用该服务不影响面板其他页面。
