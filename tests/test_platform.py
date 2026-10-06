@@ -51,6 +51,33 @@ class PlatformTest(unittest.TestCase):
         item=next(x for x in self.app.catalog.list() if x['id']=='sample')
         self.assertEqual(item['title'],'External title');self.assertEqual(item['description'],'External description');self.assertEqual(item['author'],'Publisher');self.assertEqual(item['repository'],'https://github.com/example/sample');self.assertFalse(item['readonly']);self.assertEqual(item['configCount'],1)
         self.assertEqual(self.app.catalog.config('sample','settings')['value']['timeout'],10)
+    def test_platform_settings_owner_revision_and_deployment_preservation(self):
+        path=self.root/'platform.json';original={'port':15082,'host':'127.0.0.1','publicUrl':'http://localhost:15082','secureCookies':False,'actions':[{'id':'restart','command':['deployment-only-command']}],'extraConfigs':[{'plugin':'sample','id':'extra','path':str(self.root/'extra.json')}]}
+        path.write_text(json.dumps(original));self.settings['_settingsFile']=str(path)
+        config=self.call('/api/config?plugin=orangejuice&id=platform')[1]
+        self.assertEqual(config['value']['port'],15082);self.assertIs(config['value']['secureCookies'],False);self.assertNotIn('actions',config['value']);self.assertNotIn('extraConfigs',config['value'])
+        self.app.auth.user_update(self.session,{'username':'admin','role':'admin','password':'long-test-password'})
+        sid,self.session=self.app.auth.session('admin');self.cookie='oj_session='+sid
+        self.assertEqual(self.call('/api/config?plugin=orangejuice&id=platform','PUT',{'value':config['value'],'revision':config['revision']})[0],403)
+        sid,self.session=self.app.auth.session('owner');self.cookie='oj_session='+sid
+        invalid=dict(config['value'],actions=[])
+        self.assertEqual(self.call('/api/config?plugin=orangejuice&id=platform','PUT',{'value':invalid,'revision':config['revision']})[0],400)
+        config['value']['port']=15083
+        self.assertEqual(self.call('/api/config?plugin=orangejuice&id=platform','PUT',{'value':config['value'],'revision':config['revision']})[0],200)
+        saved=json.loads(path.read_text());self.assertEqual(saved['actions'],original['actions']);self.assertEqual(saved['extraConfigs'],original['extraConfigs'])
+        self.assertEqual(self.call('/api/config?plugin=orangejuice&id=platform','PUT',{'value':config['value'],'revision':config['revision']})[0],409)
+        backup=self.app.catalog.backup_list()[0];current=self.app.catalog.config('orangejuice','platform')
+        self.app.catalog.restore(backup['id'],current['revision']);self.assertEqual(json.loads(path.read_text()),original)
+    def test_feature_plugin_ownership_rule_explanation_and_configuration_links(self):
+        directory=self.root/'config/config';directory.mkdir(parents=True)
+        (directory/'other.yaml').write_text('autoFriend: 1\n')
+        fixture=self.root/'runtime.json';fixture.write_text(json.dumps({'timestamp':time.time(),'featureInventory':{'schemaVersion':1,'features':[{'name':'设置主人','source':'system/master.js','origin':'framework','kind':'command','rules':[{'pattern':'^#设置主人$','handler':'master'}]},{'name':'搜索','source':'sample/index.js','origin':'extension','kind':'command'}]}}),encoding='utf-8')
+        self.settings['runtimeFile']=str(fixture)
+        status,report,_=self.call('/api/features');self.assertEqual(status,200)
+        master=report['items'][0];self.assertEqual(master['pluginTitle'],'内置插件');self.assertEqual(master['operations'][0]['command'],'#设置主人')
+        self.assertTrue(master['configRefs'][0]['available']);self.assertEqual(master['configRefs'][0]['id'],'other.yaml')
+        external=report['items'][1];self.assertEqual(external['pluginTitle'],'Sample');self.assertEqual(external['configRefs'][0]['id'],'settings')
+        self.assertNotIn('private-fixture',json.dumps(report));self.assertTrue(any(x['id']=='framework' for x in report['pluginGroups']))
     def test_generic_framework_configuration_without_yunzai(self):
         directory=self.root/'settings';directory.mkdir()
         (directory/'application.json').write_text('{"enabled":true,"apiKey":"private-fixture"}')

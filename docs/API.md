@@ -38,3 +38,8 @@
 浏览器只消费临时票据，不保存票据到本地存储。服务重启使全部会话失效。内部 CLI 签名采用请求时间加换行加规范紧凑 JSON 的 SHA256；桥接使用文件 IPC。
 
 `/api/features` 返回 `available/stale/timestamp/items/files/duplicates/broadEntries/truncated/groupControl`。`items` 包含 name、description、source（插件目录相对路径）、origin、kind、event、rules、hooks、handlers、priority、defaultState；定时任务另有 cron、scheduled。缺少快照或默认群聊配置时显示未知。重复检查仅比较同名入口、相同正则源码与 flags 且事件范围交叉，不运行正则表达式，也不自动禁用插件。账号、群号及实例密钥不进入功能清单。
+
+
+1.4.0：`/api/features` 增加 `pluginGroups`（插件归属、配置索引、字段说明、插件指令及能力声明）。每项登记入口增加 `pluginId/pluginTitle/displayName/explanation/operations/configRefs`。这些说明是展示元数据，不改变框架执行或权限。
+
+`plugin=framework` 用于内置插件共享配置；`plugin=orangejuice&id=platform` 专用于平台设置，仅主人可保存，采用 revision 冲突检查和自动备份。平台表单只接受监听地址、端口、公开地址、目录、只读插件、来源及 Cookie 设置等声明字段，保留未展示的部署定义。运行服务必须通过 `--config` 指定实例文件。

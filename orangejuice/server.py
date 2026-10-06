@@ -5,7 +5,7 @@ from .catalog import Catalog,mask
 from .system import Monitor
 
 WEB=Path(__file__).resolve().parent.parent/'web'
-VERSION='1.3.0'
+VERSION='1.4.0'
 
 class App:
     def __init__(self,settings,data):
@@ -140,7 +140,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if path=='/api/config' and method=='PUT':
             self.app.auth.require(session)
             if self.app.catalog.entry(arg('plugin'),arg('id')).get('ownerOnly',False):self.app.auth.require(session,('owner',))
-            if arg('plugin')=='OrangeJuice-Plugin' or arg('plugin')=='framework' and arg('id') in ('other.yaml','server.yaml','redis.yaml','db.yaml'):self.app.auth.require(session,('owner',))
+            if arg('plugin') in ('orangejuice','OrangeJuice-Plugin') or arg('plugin')=='framework' and arg('id') in ('other.yaml','server.yaml','redis.yaml','db.yaml'):self.app.auth.require(session,('owner',))
             body=self.json_body();result=self.app.catalog.save(arg('plugin'),arg('id'),body.get('value'),body.get('revision'));self.app.audit(user,'config-save',arg('plugin')+'/'+arg('id'));return self.output(result)
         if path=='/api/backups' and method=='GET':self.app.auth.require(session);return self.output(self.app.catalog.backup_list())
         if path=='/api/backups/restore' and method=='POST':
@@ -203,7 +203,7 @@ def serve(settings,data):
 
 def cli():
     parser=argparse.ArgumentParser();parser.add_argument('action',choices=['serve','ticket','diagnose']);parser.add_argument('--config',default='config/local.json');parser.add_argument('--data',default='data');args=parser.parse_args()
-    settings=json.loads(Path(args.config).read_text(encoding='utf-8'));data=Path(args.data).resolve()
+    settings=json.loads(Path(args.config).read_text(encoding='utf-8'));settings['_settingsFile']=str(Path(args.config).resolve());data=Path(args.data).resolve()
     if args.action=='serve':return serve(settings,data)
     if args.action=='diagnose':return print(json.dumps({'python':sys.version.split()[0],'yaml':True,'psutil':True,'pluginsDirectoryExists':Path(settings.get('pluginsDirectory','plugins')).is_dir(),'webAssets':(WEB/'index.html').exists()}))
     key=(data/'bridge.key').read_text(encoding='utf-8').strip();raw=b'{}';stamp=str(time.time());signature=hmac.new(key.encode(),(stamp+'\n'+hashlib.sha256(raw).hexdigest()).encode(),hashlib.sha256).hexdigest()

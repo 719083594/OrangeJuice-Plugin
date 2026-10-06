@@ -1,12 +1,13 @@
 import copy,hashlib,json,math,os,re,secrets,shutil,subprocess,threading,time
 from pathlib import Path
 from .features import inventory
+from .platform_config import FIELDS as PLATFORM_FIELDS, KEYS as PLATFORM_KEYS
 import yaml
 from .auth import Error,atomic
 
 MASK='••••••••'
 SECRET=re.compile(r'password|passwd|token|secret|api.?key|authorization|cookie|private.?key|credential|^auth$',re.I)
-PUBLIC_TOKEN_FIELDS={'maxtoken','maxtokens','maxoutputtokens','inputtokens','outputtokens','totaltokens','cachedtokens','reasoningtokens','tokenbudget','tokenlimit','maxcontexttokens','usetoken'}
+PUBLIC_TOKEN_FIELDS={'maxtoken','maxtokens','maxoutputtokens','inputtokens','outputtokens','totaltokens','cachedtokens','reasoningtokens','tokenbudget','tokenlimit','maxcontexttokens','usetoken','securecookies'}
 BLOCKED={'__proto__','constructor','prototype'}
 
 def digest(raw):return hashlib.sha256(raw).hexdigest()
@@ -97,7 +98,31 @@ class Catalog:
             file=self.safe(directory/'group.yaml',directory)
             if file.is_file():group,_=read_document(file)
         except (Error,OSError,ValueError,yaml.YAMLError):pass
-        return inventory(self.runtime(),group)
+        report=inventory(self.runtime(),group)
+        plugins=self.list()
+        metadata={p['id']:p for p in plugins}
+        report['pluginGroups']=[]
+        ids=['framework']+[p['id'] for p in plugins if not p['builtin']]
+        ids+=list(dict.fromkeys(x['pluginId'] for x in report['items'] if x['pluginId'] and x['pluginId'] not in ids))
+        for pid in ids:
+            plugin=metadata.get(pid,{})
+            try:
+                entries=self.configs(pid)
+                if pid=='OrangeJuice-Plugin':entries=entries+self.configs('orangejuice')
+            except (Error,OSError,ValueError,TypeError):entries=[]
+            configs=[{'id':c['id'],'plugin':'orangejuice' if 'editableKeys' in c else pid,'title':c['title'],'readonly':c['readonly'],'reload':c['reload'],
+                      'fields':[{k:v for k,v in f.items() if k in ('path','label','description','readonly','status')} for f in c['fields'][:500] if isinstance(f,dict)]} for c in entries]
+            features=[x for x in report['items'] if x['pluginId']==pid]
+            title='内置插件' if pid=='framework' else plugin.get('title',pid)
+            for item in features:
+                item['pluginTitle']=title
+                for ref in item['configRefs']:ref['available']=any(c['id']==ref['id'] for c in configs)
+                if pid!='framework':item['configRefs']=[{'plugin':c['plugin'],'id':c['id'],'paths':[],'available':True} for c in configs]
+            declared=plugin.get('capabilities',[])
+            report['pluginGroups'].append({'id':pid,'title':title,'origin':'framework' if pid=='framework' else features[0]['origin'] if features else 'extension',
+                'description':'框架自带功能统一归类，原始文件位置保留在各项说明中。' if pid=='framework' else plugin.get('description',''),
+                'configs':configs,'commands':plugin.get('commands',[]),'capabilities':declared,'featureCount':len(features)})
+        return report
     def safe(self,path,root):
         root=Path(root).resolve();p=Path(path)
         if p.is_symlink() or not p.resolve().is_relative_to(root):raise Error('配置路径不允许访问',403)
@@ -155,6 +180,12 @@ class Catalog:
             result.append(item)
         return result
     def configs(self,pid):
+        if pid=='orangejuice':
+            setting=self.settings.get('_settingsFile')
+            if not setting:return []
+            path=Path(setting).resolve()
+            return [{'id':'platform','title':'橙汁平台设置','path':path,'root':path.parent,'readonly':False,'ownerOnly':True,
+                     'fields':PLATFORM_FIELDS,'reload':'restart','editableKeys':PLATFORM_KEYS}]
         if pid=='framework':
             directory=self.safe(Path(self.settings.get('frameworkConfigsDirectory',self.framework/'config/config')),self.framework)
             return [{'id':p.name,'title':p.stem,'path':p,'root':directory,'readonly':False,'fields':[],'reload':'restart'} for p in sorted(directory.glob('*')) if p.suffix in ('.json','.yaml','.yml') and not p.is_symlink()]
@@ -187,6 +218,7 @@ class Catalog:
         self.safe(item['path'],item['root']);return item
     def config(self,pid,cid):
         item=self.entry(pid,cid);p=item['path'];value,revision=read_document(p) if p.exists() else (item.get('defaults',{}),'missing')
+        if 'editableKeys' in item:value={k:v for k,v in value.items() if k in item['editableKeys']}
         return {'id':cid,'title':item['title'],'value':mask_fields(value,item['fields']),'revision':revision,'readonly':item['readonly'],'ownerOnly':item.get('ownerOnly',False),'fields':item['fields'],'reload':item['reload'],'format':p.suffix.removeprefix('.')}
     def validate(self,value,fields):
         for field in fields:
@@ -207,6 +239,9 @@ class Catalog:
             if revision!=current:raise Error('配置已被其他操作更新，请重新读取后保存',409)
             if not isinstance(value,(dict,list)):raise Error('配置应为对象或数组')
             value=restore_mask(value,original);self.validate(value,item['fields'])
+            if 'editableKeys' in item:
+                if not isinstance(value,dict) or set(value)-item['editableKeys']:raise Error('此表单只允许修改橙汁平台设置')
+                value={**original,**value}
             def finite(v):
                 if isinstance(v,float) and not math.isfinite(v):raise Error('数值必须有限')
                 if isinstance(v,dict):
@@ -244,6 +279,7 @@ class Catalog:
         if not (folder/'meta.json').exists():raise Error('备份不存在',404)
         meta=json.loads((folder/'meta.json').read_text(encoding='utf-8'));item=self.entry(meta['plugin'],meta['config'])
         raw=(folder/'content').read_bytes();value=json.loads(raw) if item['path'].suffix=='.json' else yaml.safe_load(raw)
+        if 'editableKeys' in item:value={k:v for k,v in value.items() if k in item['editableKeys']}
         return self.save(meta['plugin'],meta['config'],value,revision)
     def readme(self,pid):
         root=self.plugin(pid)

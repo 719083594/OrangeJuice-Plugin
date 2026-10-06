@@ -2,6 +2,7 @@
 from collections import defaultdict
 from pathlib import PurePosixPath
 import math
+from .feature_docs import describe
 
 
 def text(value, limit=500):
@@ -53,6 +54,7 @@ def inventory(runtime, group=None):
             files.append({'source': source(item['source']), 'origin': item.get('origin') if item.get('origin') in ('framework', 'extension') else 'unknown',
                           'featureCount': sum(x['source'] == source(item['source']) for x in items),
                           'importedClasses': item.get('importedClasses') if isinstance(item.get('importedClasses'), int) else None})
+    items = [describe(item) for item in items]
     groups, by_name, by_rule = [], defaultdict(list), defaultdict(set)
     for item in items:
         if item['kind'] != 'module':
