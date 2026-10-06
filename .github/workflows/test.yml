@@ -24,4 +24,4 @@ jobs:
       - run: node --check web/features-view.js
       - run: node --check integrations/yunzai/index.js
       - run: node --check integrations/yunzai/feature-runtime.mjs
-      - run: node --test tests/bridge.test.mjs tests/config-form.test.mjs tests/feature-runtime.test.mjs tests/features-view.test.mjs
+      - run: node --test tests/bridge.test.mjs tests/command-table.test.mjs tests/command-aliases.test.mjs tests/config-form.test.mjs tests/feature-runtime.test.mjs tests/features-view.test.mjs

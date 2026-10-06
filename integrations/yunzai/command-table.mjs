@@ -166,7 +166,11 @@ export async function replyCommandTable(e,table,{forward=true}={}) {
     try {
       const nodes=messages.map(message=>({user_id:e.self_id||e.bot?.uin||e.user_id,nickname:'功能指令表',message}))
       const value=await maker.call(context,nodes)
-      if(value){const receipt=await e.reply(value,Boolean(e.isGroup));if(receipt!==false && !receipt?.error && !(receipt?.retcode>0))return true}
+      if(value){
+        // OneBot sends forward nodes separately; quoting would leave a reply-only message.
+        const receipt=await e.reply(value,false)
+        if(receipt!==false && !receipt?.error && !(receipt?.retcode>0))return true
+      }
     } catch { /* Adapters without forwarded messages receive the same complete text. */ }
   }
   for(const message of messages)await e.reply(message,Boolean(e.isGroup))

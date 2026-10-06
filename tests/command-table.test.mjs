@@ -82,3 +82,24 @@ test('categorized forwarding and text fallback keep every command; no dependency
  assert.equal(replies.length,1);assert.equal(nodes.length,commandMessages(table).length)
  assert.equal(nodes.map(x=>x.message).join('\n'),commandMessages(table).join('\n'))
 })
+test('group command forwarding does not leave a standalone quoted message in OneBot',async()=>{
+ const table=buildCommandTable({priority:entries},{isGroup:true},{docs}),sent=[]
+ const e={
+  isGroup:true,self_id:'bot',message_id:'command-message',
+  group:{makeForwardMsg:async nodes=>({type:'node',data:nodes})},
+  // Yunzai prepends a reply segment; OneBot sends nodes separately from regular segments.
+  reply:async(value,quote=false)=>{
+   const segments=Array.isArray(value)?[...value]:[value]
+   if(quote)segments.unshift({type:'reply',data:{id:'command-message'}})
+   const nodes=segments.filter(x=>x.type==='node').flatMap(x=>x.data)
+   const message=segments.filter(x=>x.type!=='node')
+   if(nodes.length)sent.push({type:'forward',nodes})
+   if(message.length)sent.push({type:'message',message})
+   return {message_id:'sent'}
+  }
+ }
+ assert.equal(await replyCommandTable(e,table),true)
+ assert.equal(sent.length,1,'the command must send only its forward card, without a quote-only bubble')
+ assert.equal(sent[0].type,'forward')
+ assert.deepEqual(sent[0].nodes.map(x=>x.message),commandMessages(table))
+})
