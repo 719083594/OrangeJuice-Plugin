@@ -243,7 +243,8 @@ class Catalog:
         for cfg in self.settings.get('extraConfigs',[]):
             if cfg.get('plugin')==pid:
                 p=Path(cfg['path']).resolve()
-                if str(p)==self.settings.get('_settingsFile'):continue
+                setting=self.settings.get('_settingsFile')
+                if setting and p==Path(setting).resolve():continue
                 entries.append({'id':cfg['id'],'title':cfg.get('title',p.name),'path':p,'root':p.parent,'readonly':readonly or cfg.get('readonly',False),'ownerOnly':bool(cfg.get('ownerOnly',False)),'fields':cfg.get('fields',[]),'reload':cfg.get('reload','restart')})
         if pid=='OrangeJuice-Plugin':entries+=self.configs('orangejuice')
         if any(c['id']=='collector' for c in entries):entries=[c for c in entries if c['id']!='collector-example']
