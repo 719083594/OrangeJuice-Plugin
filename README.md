@@ -59,6 +59,8 @@ python scripts/install.py --framework-root /path/to/yunzai --yunzai-bridge --pub
 
 重启机器人后，主人私聊发送 `#橙汁登录` 或 `/橙汁登录` 获取入口；`#橙汁帮助` 查看帮助。群内登录命令只提示转到私聊。
 
+安装 AI-Plugin 的共享静态图片读取服务并包含仓库 `resources/help/` 发布资源时，`#橙汁帮助` 直接发送已校验的本地固定帮助图，无需浏览器或在线渲染。`#橙汁帮助 文字` 查看文字版；缺少图片或共享服务时保留文字帮助。权限仍限机器人主人私聊，帮助图不含真实服务地址、登录票据或配置。桥接组件安装时将 `integrations/yunzai/` 平铺到 `plugins/OrangeJuice-Plugin/`，并复制 `resources/help/` 至该插件的同名目录；额外保留公开源码 `integrations/yunzai/help-content.mjs`，供图片清单按仓库路径校验。
+
 Docker 部署应让管理服务与机器人共享 `data/orangejuice` 目录。管理服务的 `bridgeDirectory` 和 `runtimeFile` 使用宿主机路径；桥接组件使用容器内路径。详见 [部署说明](docs/DEPLOYMENT.md)。
 
 ### 其他框架

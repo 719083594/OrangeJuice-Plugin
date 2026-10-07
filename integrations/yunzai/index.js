@@ -8,7 +8,22 @@ import {featureSnapshot} from './feature-runtime.mjs'
 import cfg from '../../lib/config/config.js'
 import {readPluginJSON,replyCommandTable} from './command-table.mjs'
 import {commandCatalog,publishCommandCatalog} from './command-knowledge.mjs'
+import {HELP_TEXT} from './help-content.mjs'
 const PluginBase=globalThis.plugin||(await import('../../lib/plugins/plugin.js')).default
+const bridgeRoot=fileURLToPath(new URL('.',import.meta.url))
+let helpDelivery
+async function sendFixedHelp(e){
+  // This adapter is installed flat in plugins/OrangeJuice-Plugin. Import only
+  // the sibling AI-Plugin's pure fixed-file helper, never its AI client.
+  if(!helpDelivery)helpDelivery=import('../AI-Plugin/src/rendering/index.mjs').then(service=>{
+    if(typeof service?.createFixedHelpDelivery!=='function')throw new Error('HELP_READER_UNAVAILABLE')
+    const send=service.createFixedHelpDelivery({root:bridgeRoot})
+    if(typeof send!=='function')throw new Error('HELP_READER_UNAVAILABLE')
+    return send
+  }).catch(()=>{helpDelivery=undefined;return null})
+  const send=await helpDelivery
+  return send?send(e,'orangejuice-help'):false
+}
 
 const root=path.resolve('data/orangejuice')
 let config={publicUrl:'http://127.0.0.1:16080',ipcDirectory:root}
@@ -69,13 +84,16 @@ export class OrangeJuice extends PluginBase {
   }
   async login(e){
     if(!e.isMaster)return true
-    if(e.isGroup){await e.reply('请主人私聊使用橙汁登录或配置命令。');return true}
+    if(e.isGroup||e.group_id){await e.reply('请主人私聊使用橙汁登录或配置命令。');return true}
     if(/(?:配置|设置|功能)(?:\s|$)/.test(e.msg)){
       try{const result=await request(configurationPayload(e.msg));await e.reply(result.text)}
       catch(error){await e.reply(error.message)}
       return true
     }
-    if(/帮助$/.test(e.msg)){await e.reply('OrangeJuice 管理面板\n#指令 /指令 #指令表 /指令表：按功能分类的全部指令；群聊隐藏主人指令，主人私聊显示完整表。\n#橙汁登录 /橙汁登录：主人临时登录链接，3分钟内一次有效。\n#橙汁功能 [功能名 开/关]：内置功能开关。\n#橙汁配置：插件列表。\n#橙汁配置 插件名 [搜索词或页码]：查询设置。\n#橙汁设置 插件名 选项编号 @版本 值：修改设置，支持 JSON 和开/关。\n配置命令仅主人私聊可用，保存会校验并备份。\n面板机器人桥接设置可配置自定义指令。\n网页登录支持账号密码和控制台验证码。');return true}
+    if(/帮助(?:\s+文字)?$/.test(e.msg)){
+      if(!/\s+文字$/.test(e.msg)&&await sendFixedHelp(e))return true
+      await e.reply(HELP_TEXT);return true
+    }
     try{const {ticket:code}=await request({action:'ticket'});await e.reply(config.publicUrl.replace(/\/$/,'')+'/#/login?ticket='+encodeURIComponent(code))}
     catch(error){logger.warn('[OrangeJuice] '+error.message);await e.reply('管理服务暂时未就绪，请查看 OrangeJuice 服务状态。')}
     return true

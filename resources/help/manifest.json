@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "hashAlgorithm": "sha256-lf-v1",
+  "cards": {
+    "orangejuice-help": [
+      {
+        "file": "resources/help/orangejuice-help-1.jpg",
+        "sha256": "4ba18b35145aae2da1d3832efab685f38d26b2d602001cda1b6650e0cb299f18",
+        "width": 1080,
+        "height": 1182
+      }
+    ]
+  },
+  "sources": [
+    {
+      "file": "integrations/yunzai/help-content.mjs",
+      "sha256": "29f1ac611f7a6ca30ab0d51aa44fbc17455edabcb6332cae77c4a7cb03b22545"
+    }
+  ]
+}

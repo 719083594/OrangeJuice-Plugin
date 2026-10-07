@@ -20,6 +20,12 @@ if args.yunzai_bridge:
     bridge=plugins/'OrangeJuice-Plugin'
     if bridge.exists():raise SystemExit('Bridge directory already exists; existing files were not overwritten')
     shutil.copytree(root/'integrations/yunzai',bridge)
+    # The bridge runs flat, while the help manifest verifies the canonical
+    # repository-relative public source. Keep both copies in a fresh install.
+    canonical=bridge/'integrations/yunzai/help-content.mjs';canonical.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copy2(root/'integrations/yunzai/help-content.mjs',canonical)
+    help_resources=root/'resources/help'
+    if help_resources.is_dir():shutil.copytree(help_resources,bridge/'resources/help',dirs_exist_ok=True)
     ipc=framework/'data/orangejuice';ipc.mkdir(parents=True,exist_ok=True);settings.update(frameworkName='Yunzai V3',bridgeDirectory=str(ipc),runtimeFile=str(ipc/'runtime.json'))
     (bridge/'config').mkdir(exist_ok=True);(bridge/'config/local.json').write_text(json.dumps({'publicUrl':settings['publicUrl'],'ipcDirectory':'data/orangejuice'},indent=2))
 if not config.exists():config.write_text(json.dumps(settings,ensure_ascii=False,indent=2),encoding='utf-8');os.chmod(config,0o600)
