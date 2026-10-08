@@ -134,6 +134,54 @@
         "description": "管理自己的记忆；启用长期记忆后参与回答。"
       },
       {
+        "title": "语音回复模式",
+        "command": "#AI语音模式 / #AI切换语音",
+        "description": "将机器人共用的回复方式切换为语音，影响后续 AI 回答，保留各会话上下文；须已配置语音服务。",
+        "permission": "all"
+      },
+      {
+        "title": "文字回复模式",
+        "command": "#AI文字模式 / #AI切换文字",
+        "description": "将机器人共用的回复方式恢复为文字，影响后续 AI 回答，保留各会话上下文。",
+        "permission": "all"
+      },
+      {
+        "title": "语音状态",
+        "command": "#AI语音状态",
+        "description": "查看机器人共用的回复方式、音色和语音服务状态。",
+        "permission": "all"
+      },
+      {
+        "title": "文字转语音",
+        "command": "#AI转语音 文字 / #AI文字转语音 文字",
+        "description": "直接朗读指定文字，不改变当前回复方式，不额外请求聊天模型。",
+        "permission": "all"
+      },
+      {
+        "title": "语音音色列表",
+        "command": "#AI音色列表 [游戏] [页码] / #AI语音列表 [游戏] [页码]",
+        "description": "按游戏分页查看语音服务提供的音色和别名。",
+        "permission": "all"
+      },
+      {
+        "title": "选择语音音色",
+        "command": "#AI语音 纳西妲 / #AI语音纳西妲 / #AI音色 纳西妲",
+        "description": "按名称或别名切换机器人共用的音色并开启语音回复，有 AI 使用权限的用户均可切换。",
+        "permission": "all"
+      },
+      {
+        "title": "语音游戏分类",
+        "command": "#AI语音游戏 原神",
+        "description": "选择机器人共用的音色列表游戏分类，不改变当前音色或回复方式。",
+        "permission": "all"
+      },
+      {
+        "title": "语音帮助",
+        "command": "#AI语音帮助 / #AI语音",
+        "description": "查看语音回复、音色和文字转语音指令。",
+        "permission": "all"
+      },
+      {
         "title": "AI 工作台",
         "command": "#AI登录 / #AI后台",
         "description": "仅主人私聊，一次性登录管理入口。"
